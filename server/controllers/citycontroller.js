@@ -1,14 +1,16 @@
 const City = require("../models/City");
 
-// Add City
+// Add City / Multiple Cities
 const addCity = async (req, res) => {
   try {
-    const city = await City.create(req.body);
+    const data = Array.isArray(req.body) ? req.body : [req.body];
+
+    const cities = await City.insertMany(data);
 
     res.status(201).json({
       success: true,
-      message: "City added successfully",
-      city,
+      message: `${cities.length} city/cities added successfully`,
+      cities,
     });
   } catch (error) {
     res.status(500).json({
