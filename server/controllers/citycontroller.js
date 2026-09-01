@@ -1,6 +1,24 @@
 const City = require("../models/City");
 
-// Get all cities
+// Add City
+const addCity = async (req, res) => {
+  try {
+    const city = await City.create(req.body);
+
+    res.status(201).json({
+      success: true,
+      message: "City added successfully",
+      city,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// Get All Cities
 const getCities = async (req, res) => {
   try {
     const cities = await City.find().sort({ name: 1 });
@@ -8,23 +26,20 @@ const getCities = async (req, res) => {
     res.json({
       success: true,
       count: cities.length,
-      data: cities,
+      cities,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch cities",
-      error: error.message,
+      message: error.message,
     });
   }
 };
 
-// Get city by name
-const getCityByName = async (req, res) => {
+// Get City By ID
+const getCityById = async (req, res) => {
   try {
-    const city = await City.findOne({
-      name: { $regex: `^${req.params.name}$`, $options: "i" },
-    });
+    const city = await City.findById(req.params.id);
 
     if (!city) {
       return res.status(404).json({
@@ -35,66 +50,18 @@ const getCityByName = async (req, res) => {
 
     res.json({
       success: true,
-      data: city,
+      city,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch city",
-      error: error.message,
-    });
-  }
-};
-
-// Add new city
-const createCity = async (req, res) => {
-  try {
-    const { name, state, country, latitude, longitude, population } = req.body;
-
-    if (!name || !state) {
-      return res.status(400).json({
-        success: false,
-        message: "City name and state are required",
-      });
-    }
-
-    const existingCity = await City.findOne({
-      name: { $regex: `^${name}$`, $options: "i" },
-      state: { $regex: `^${state}$`, $options: "i" },
-    });
-
-    if (existingCity) {
-      return res.status(409).json({
-        success: false,
-        message: "City already exists",
-      });
-    }
-
-    const city = await City.create({
-      name,
-      state,
-      country,
-      latitude,
-      longitude,
-      population,
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "City created successfully",
-      data: city,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to create city",
-      error: error.message,
+      message: error.message,
     });
   }
 };
 
 module.exports = {
+  addCity,
   getCities,
-  getCityByName,
-  createCity,
+  getCityById,
 };
