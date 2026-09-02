@@ -13,10 +13,26 @@ import {
 
 import "./App.css";
 
+const getWeatherDescription = (code) => {
+  if (code === 0) return "Clear Sky";
+  if (code === 1) return "Mainly Clear";
+  if (code === 2) return "Partly Cloudy";
+  if (code === 3) return "Overcast";
+  if ([45, 48].includes(code)) return "Fog";
+  if ([51, 53, 55, 56, 57].includes(code)) return "Drizzle";
+  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "Rain";
+  if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
+  if ([95, 96, 99].includes(code)) return "Thunderstorm";
+
+  return "Unknown";
+};
+
 function App() {
+
   const [cities, setCities] = useState([]);
   const [selectedCity, setSelectedCity] = useState(null);
   const [search, setSearch] = useState("");
+  const [weather, setWeather] = useState(null);
 
   // Fetch cities from backend
   useEffect(() => {
@@ -33,6 +49,20 @@ function App() {
         console.error("Error fetching cities:", error);
       });
   }, []);
+  useEffect(() => {
+    if (!selectedCity) return;
+
+    fetch(`http://localhost:5000/api/cities/${selectedCity._id}/weather`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          setWeather(data.weather);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching weather:", error);
+      });
+  }, [selectedCity]);
 
   // Search cities
   const filteredCities = cities.filter((city) =>
@@ -102,7 +132,14 @@ function App() {
                 onChange={(e) => setSearch(e.target.value)}
               />
 
-              <button className="search-btn">
+              <button
+                className="search-btn"
+                onClick={() => {
+                  if (filteredCities.length > 0) {
+                    setSelectedCity(filteredCities[0]);
+                  }
+                }}
+              >
                 Search
               </button>
 
@@ -174,12 +211,21 @@ function App() {
 
               <div className="card-main">
 
-                <h3>28°</h3>
+                <h3>
+                  {weather ? `${Math.round(weather.temperature_2m)}°` : "--"}
+                </h3>
 
-                <div className="weather-info">
-                  <span>Clear Sky</span>
-                  <small>Feels like 29°</small>
-                </div>
+                <span>
+                  {weather
+                    ? getWeatherDescription(weather.weather_code)
+                    : "Loading..."}
+                </span>
+
+                <small>
+                  {weather
+                    ? `Feels like ${Math.round(weather.apparent_temperature)}°`
+                    : "Loading..."}
+                </small>
 
               </div>
 
