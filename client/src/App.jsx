@@ -255,17 +255,30 @@ function App() {
 
               <div className="card-main">
 
-                <h3>142</h3>
+                <h3>
+                  {weather?.us_aqi ?? "--"}
+                </h3>
 
                 <div className="weather-info">
-                  <span>Moderate</span>
+                  <span>
+                    {weather
+                      ? weather.us_aqi <= 50
+                        ? "Good"
+                        : weather.us_aqi <= 100
+                          ? "Moderate"
+                          : weather.us_aqi <= 150
+                            ? "Unhealthy for Sensitive Groups"
+                            : "Unhealthy"
+                      : "Loading..."}
+                  </span>
+
                   <small>AQI Index</small>
                 </div>
 
               </div>
 
               <div className="card-footer">
-                PM2.5 · 68 μg/m³
+                PM2.5 · {weather?.pm2_5?.toFixed(1) ?? "--"} μg/m³
               </div>
 
             </div>
