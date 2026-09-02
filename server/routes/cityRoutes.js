@@ -4,9 +4,8 @@ const {
   addCity,
   getCities,
   getCityById,
+  getCityWeather,
 } = require("../controllers/cityController");
-
-const getWeather = require("../services/weatherService");
 
 const router = express.Router();
 
@@ -14,7 +13,11 @@ router.post("/", addCity);
 
 router.get("/", getCities);
 
+router.get("/:id/weather", getCityWeather);
+
 router.get("/:id", getCityById);
+
+module.exports = router;
 
 // Get Weather
 router.get("/:id/weather", async (req, res) => {
