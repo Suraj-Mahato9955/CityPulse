@@ -1,4 +1,6 @@
 const City = require("../models/City");
+const getWeather = require("../services/weatherService");
+const City = require("../models/City");
 
 // Add City / Multiple Cities
 const addCity = async (req, res) => {
@@ -61,9 +63,39 @@ const getCityById = async (req, res) => {
     });
   }
 };
+// Get City Weather
+const getCityWeather = async (req, res) => {
+  try {
+    const city = await City.findById(req.params.id);
+
+    if (!city) {
+      return res.status(404).json({
+        success: false,
+        message: "City not found",
+      });
+    }
+
+    const weather = await getWeather(
+      city.latitude,
+      city.longitude
+    );
+
+    res.json({
+      success: true,
+      city: city.name,
+      weather,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 module.exports = {
   addCity,
   getCities,
   getCityById,
+  getCityWeather,
 };
