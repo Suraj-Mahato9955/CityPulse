@@ -150,16 +150,15 @@ function App() {
 
               <span>Popular:</span>
 
-              {filteredCities.map((city) => (
-                <button
-                  key={city._id}
-                  onClick={() => {
-                    setSelectedCity(city);
-                    setSearch("");
-                  }}
-                >
-                  {city.name}
-                </button>
+              {cities.map((city) => (<button
+                key={city._id}
+                onClick={() => {
+                  setSelectedCity(city);
+                  setSearch("");
+                }}
+              >
+                {city.name}
+              </button>
               ))}
 
             </div>
@@ -328,10 +327,31 @@ function App() {
 
               <div className="card-main">
 
-                <h3>03</h3>
+                <h3>
+                  {weather
+                    ? weather.us_aqi > 150
+                      ? "03"
+                      : weather.us_aqi > 100
+                        ? "02"
+                        : weather.us_aqi > 50
+                          ? "01"
+                          : "00"
+                    : "--"}
+                </h3>
 
                 <div className="weather-info">
-                  <span>Active</span>
+                  <span>
+                    {weather
+                      ? weather.us_aqi > 150
+                        ? "High"
+                        : weather.us_aqi > 100
+                          ? "Moderate"
+                          : weather.us_aqi > 50
+                            ? "Low"
+                            : "Safe"
+                      : "Loading..."}
+                  </span>
+
                   <small>City alerts</small>
                 </div>
 
@@ -423,18 +443,31 @@ function App() {
 
               <div className="aqi-score">
 
-                <strong>142</strong>
+                <strong>
+                  {weather?.us_aqi ?? "--"}
+                </strong>
 
                 <span>
-                  Moderate
+                  {weather
+                    ? weather.us_aqi <= 50
+                      ? "Good"
+                      : weather.us_aqi <= 100
+                        ? "Moderate"
+                        : weather.us_aqi <= 150
+                          ? "Unhealthy for Sensitive Groups"
+                          : "Unhealthy"
+                    : "Loading..."}
                 </span>
 
               </div>
 
               <div className="aqi-bar">
-
-                <div className="aqi-progress"></div>
-
+                <div
+                  className="aqi-progress"
+                  style={{
+                    width: `${Math.min(((weather?.us_aqi || 0) / 300) * 100, 100)}%`,
+                  }}
+                ></div>
               </div>
 
               <div className="aqi-scale">
@@ -446,10 +479,15 @@ function App() {
               </div>
 
               <p className="aqi-description">
-
-                Air quality is acceptable, but sensitive people
-                may experience minor health effects.
-
+                {weather
+                  ? weather.us_aqi <= 50
+                    ? "Air quality is good and poses little or no risk."
+                    : weather.us_aqi <= 100
+                      ? "Air quality is acceptable, but some sensitive people may experience minor effects."
+                      : weather.us_aqi <= 150
+                        ? "Sensitive people may experience health effects from the current air quality."
+                        : "Everyone may begin to experience health effects from the current air quality."
+                  : "Loading air quality data..."}
               </p>
 
             </div>
