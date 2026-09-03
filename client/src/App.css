@@ -1138,3 +1138,9 @@ button {
   }
 
 }
+.active-city {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+  font-weight: 600;
+}
