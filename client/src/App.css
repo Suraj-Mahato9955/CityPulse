@@ -35,6 +35,11 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .app {
   min-height: 100vh;
   overflow-x: hidden;
@@ -167,6 +172,8 @@ button {
   background: rgba(255, 255, 255, 0.08);
 
   border-color: rgba(255, 255, 255, 0.15);
+
+  transform: translateY(-1px);
 }
 
 .menu-btn {
@@ -326,6 +333,10 @@ button {
 
 .search-box:focus-within {
   border-color: rgba(121, 132, 255, 0.5);
+
+  box-shadow:
+    0 25px 70px rgba(0, 0, 0, 0.35),
+    0 0 0 3px rgba(100, 110, 255, 0.06);
 }
 
 .search-box > svg {
@@ -351,6 +362,42 @@ button {
 .search-box input::placeholder {
   color: #6f778a;
 }
+
+
+/* =========================
+   CLEAR SEARCH
+========================= */
+
+.clear-search {
+  width: 28px;
+  height: 28px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 50%;
+
+  color: #777f91;
+
+  background: transparent;
+
+  transition: all 0.2s ease;
+}
+
+.clear-search:hover {
+  color: #ffffff;
+
+  background: rgba(255, 255, 255, 0.08);
+}
+
+
+/* =========================
+   SEARCH BUTTON
+========================= */
 
 .search-btn {
   flex-shrink: 0;
@@ -385,6 +432,103 @@ button {
 
   box-shadow:
     0 12px 30px rgba(100, 90, 255, 0.35);
+}
+
+.search-btn:active {
+  transform: translateY(0);
+}
+
+
+/* =========================
+   SEARCH RESULTS
+========================= */
+
+.search-results {
+  width: 100%;
+  max-width: 650px;
+
+  margin: 8px auto 0;
+
+  padding: 6px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+
+  text-align: left;
+
+  border-radius: 13px;
+
+  background: rgba(12, 15, 24, 0.96);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.45);
+
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.search-results button {
+  width: 100%;
+
+  padding: 11px 13px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  border: none;
+  border-radius: 8px;
+
+  color: #aeb5c5;
+
+  background: transparent;
+
+  text-align: left;
+
+  font-size: 12px;
+
+  transition: all 0.2s ease;
+}
+
+.search-results button svg {
+  color: #7885ff;
+}
+
+.search-results button:hover {
+  color: #ffffff;
+
+  background: rgba(255, 255, 255, 0.06);
+}
+
+
+/* =========================
+   ERROR MESSAGE
+========================= */
+
+.error-message {
+  width: 100%;
+  max-width: 650px;
+
+  margin: 10px auto 0;
+
+  padding: 10px 14px;
+
+  border-radius: 9px;
+
+  color: #e99a91;
+
+  background: rgba(220, 80, 70, 0.08);
+
+  border: 1px solid rgba(220, 80, 70, 0.15);
+
+  font-size: 11px;
+
+  text-align: left;
 }
 
 
@@ -429,6 +573,21 @@ button {
   border-color: rgba(130, 140, 255, 0.3);
 
   background: rgba(110, 120, 255, 0.07);
+
+  transform: translateY(-1px);
+}
+
+.active-city {
+  background: #ffffff !important;
+
+  color: #000000 !important;
+
+  border-color: #ffffff !important;
+
+  font-weight: 600;
+
+  box-shadow:
+    0 5px 20px rgba(255, 255, 255, 0.08);
 }
 
 
@@ -478,6 +637,78 @@ button {
   color: #646c7e;
 
   font-size: 12px;
+}
+
+
+/* =========================
+   DASHBOARD STATUS
+========================= */
+
+.dashboard-status {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+}
+
+.dashboard-status > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  color: #747d90;
+
+  font-size: 11px;
+}
+
+.dashboard-status > span svg {
+  color: #7d89ff;
+}
+
+
+/* =========================
+   REFRESH BUTTON
+========================= */
+
+.refresh-btn {
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  color: #8992a5;
+
+  background: rgba(255, 255, 255, 0.04);
+
+  border: 1px solid rgba(255, 255, 255, 0.07);
+
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+  color: #ffffff;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  border-color: rgba(130, 140, 255, 0.25);
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 
@@ -662,6 +893,16 @@ button {
 
   box-shadow:
     0 15px 50px rgba(0, 0, 0, 0.16);
+
+  transition:
+    border-color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.large-card:hover {
+  border-color: rgba(125, 137, 255, 0.2);
+
+  transform: translateY(-2px);
 }
 
 .large-card-header {
@@ -705,10 +946,14 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.07);
 
   font-size: 10px;
+
+  transition: all 0.2s ease;
 }
 
 .small-btn:hover {
   color: #ffffff;
+
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .map-placeholder {
@@ -860,6 +1105,39 @@ button {
 
 
 /* =========================
+   MAP COORDINATES
+========================= */
+
+.map-coordinates {
+  position: absolute;
+
+  bottom: 12px;
+  left: 14px;
+
+  display: flex;
+  gap: 8px;
+
+  padding: 7px 10px;
+
+  border-radius: 7px;
+
+  color: #626b7e;
+
+  background: rgba(7, 9, 15, 0.72);
+
+  border: 1px solid rgba(255, 255, 255, 0.06);
+
+  font-size: 9px;
+
+  backdrop-filter: blur(8px);
+}
+
+.map-coordinates span {
+  white-space: nowrap;
+}
+
+
+/* =========================
    AQI PANEL
 ========================= */
 
@@ -893,11 +1171,15 @@ button {
 }
 
 .aqi-score span {
+  max-width: 220px;
+
   margin-top: 8px;
 
   color: #c8a477;
 
   font-size: 12px;
+
+  text-align: center;
 }
 
 .aqi-bar {
@@ -931,6 +1213,8 @@ button {
       #8aa86f,
       #e0a55d
     );
+
+  transition: width 0.6s ease;
 }
 
 .aqi-scale {
@@ -954,6 +1238,65 @@ button {
   line-height: 1.7;
 
   text-align: center;
+}
+
+
+/* =========================
+   AQI DETAILS
+========================= */
+
+.aqi-details {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 10px;
+
+  margin-top: 25px;
+}
+
+.aqi-details > div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+
+  padding: 10px;
+
+  border-radius: 9px;
+
+  background: rgba(255, 255, 255, 0.025);
+
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  text-align: center;
+}
+
+.aqi-details span {
+  color: #60697a;
+
+  font-size: 9px;
+}
+
+.aqi-details strong {
+  color: #b8becb;
+
+  font-size: 11px;
+}
+
+
+/* =========================
+   LAST UPDATED
+========================= */
+
+.last-updated {
+  margin-top: 15px;
+
+  color: #535b6c;
+
+  font-size: 9px;
+
+  text-align: right;
 }
 
 
@@ -1011,10 +1354,14 @@ button {
 
 
 /* =========================
-   RESPONSIVE
+   TABLET
 ========================= */
 
 @media (max-width: 1000px) {
+
+  .navbar {
+    padding: 0 5%;
+  }
 
   .cards {
     grid-template-columns: repeat(2, 1fr);
@@ -1027,9 +1374,15 @@ button {
 }
 
 
+/* =========================
+   MOBILE
+========================= */
+
 @media (max-width: 700px) {
 
   .navbar {
+    height: 68px;
+
     padding: 0 20px;
   }
 
@@ -1044,7 +1397,9 @@ button {
   .hero {
     min-height: 560px;
 
-    padding-top: 80px;
+    padding:
+      80px 18px
+      70px;
   }
 
   .hero h1 {
@@ -1055,6 +1410,8 @@ button {
 
   .hero p {
     font-size: 14px;
+
+    margin-top: 22px;
   }
 
   .search-box {
@@ -1068,8 +1425,9 @@ button {
   }
 
   .dashboard-preview {
-    padding-left: 18px;
-    padding-right: 18px;
+    padding:
+      60px 18px
+      90px;
   }
 
   .section-heading {
@@ -1078,6 +1436,12 @@ button {
 
   .section-heading > p {
     margin-top: 8px;
+  }
+
+  .dashboard-status {
+    margin-top: 14px;
+
+    justify-content: space-between;
   }
 
   .cards {
@@ -1092,8 +1456,26 @@ button {
     height: 250px;
   }
 
+  .map-coordinates {
+    max-width: calc(100% - 28px);
+
+    overflow-x: auto;
+  }
+
+  .aqi-details {
+    margin-top: 20px;
+  }
+
+  .last-updated {
+    text-align: center;
+  }
+
 }
 
+
+/* =========================
+   SMALL MOBILE
+========================= */
 
 @media (max-width: 450px) {
 
@@ -1111,8 +1493,14 @@ button {
     padding-right: 15px;
   }
 
+  .location-badge {
+    font-size: 10px;
+
+    padding: 7px 12px;
+  }
+
   .search-box {
-    gap: 8px;
+    gap: 7px;
   }
 
   .search-box input {
@@ -1137,10 +1525,41 @@ button {
     font-size: 55px;
   }
 
+  .aqi-description {
+    font-size: 10px;
+  }
+
+  .map-placeholder {
+    height: 230px;
+  }
+
+  .map-location {
+    left: 50%;
+  }
+
+  .map-pin {
+    left: 50%;
+  }
+
 }
-.active-city {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
-  font-weight: 600;
+
+
+/* =========================
+   REDUCED MOTION
+========================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
 }
