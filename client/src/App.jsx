@@ -13,6 +13,7 @@ import {
 
 import "./App.css";
 
+
 const getWeatherDescription = (code) => {
   if (code === 0) return "Clear Sky";
   if (code === 1) return "Mainly Clear";
@@ -24,8 +25,17 @@ const getWeatherDescription = (code) => {
   if ([71, 73, 75, 77, 85, 86].includes(code)) return "Snow";
   if ([95, 96, 99].includes(code)) return "Thunderstorm";
 
+
   return "Unknown";
 };
+const getAQIStatus = (aqi) => {
+    if (aqi <= 50) return "Good";
+    if (aqi <= 100) return "Moderate";
+    if (aqi <= 150) return "Unhealthy for Sensitive Groups";
+    if (aqi <= 200) return "Unhealthy";
+    if (aqi <= 300) return "Very Unhealthy";
+    return "Hazardous";
+  };
 
 function App() {
 
@@ -152,6 +162,7 @@ function App() {
 
               {cities.map((city) => (<button
                 key={city._id}
+                className={selectedCity?._id === city._id ? "active-city" : ""}
                 onClick={() => {
                   setSelectedCity(city);
                   setSearch("");
@@ -218,7 +229,9 @@ function App() {
                   {weather
                     ? getWeatherDescription(weather.weather_code)
                     : "Loading..."}
+
                 </span>
+
 
                 <small>
                   {weather
@@ -260,15 +273,7 @@ function App() {
 
                 <div className="weather-info">
                   <span>
-                    {weather
-                      ? weather.us_aqi <= 50
-                        ? "Good"
-                        : weather.us_aqi <= 100
-                          ? "Moderate"
-                          : weather.us_aqi <= 150
-                            ? "Unhealthy for Sensitive Groups"
-                            : "Unhealthy"
-                      : "Loading..."}
+                    {weather ? getAQIStatus(weather.us_aqi) : "Loading..."}
                   </span>
 
                   <small>AQI Index</small>
@@ -328,15 +333,9 @@ function App() {
               <div className="card-main">
 
                 <h3>
-                  {weather
-                    ? weather.us_aqi > 150
-                      ? "03"
-                      : weather.us_aqi > 100
-                        ? "02"
-                        : weather.us_aqi > 50
-                          ? "01"
-                          : "00"
-                    : "--"}
+                  <span>
+                    {weather ? getAQIStatus(weather.us_aqi) : "Loading..."}
+                  </span>
                 </h3>
 
                 <div className="weather-info">
@@ -352,13 +351,18 @@ function App() {
                       : "Loading..."}
                   </span>
 
-                  <small>City alerts</small>
+                  <small>
+                    {weather && weather.us_aqi > 100
+                      ? "Air quality alert"
+                      : "City alerts"}
+                  </small>
                 </div>
 
               </div>
 
               <div className="card-footer">
                 View all alerts
+                Wind · {weather?.wind_speed_10m ?? "--"} km/h
               </div>
 
             </div>
