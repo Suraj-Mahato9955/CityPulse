@@ -54,7 +54,9 @@ const getWeather = async (latitude, longitude) => {
     const dailyForecast = [];
 
     forecastData.list.forEach((item) => {
-      const date = new Date(item.dt * 1000).toISOString().split("T")[0];
+      const date = new Date(item.dt * 1000)
+        .toISOString()
+        .split("T")[0];
 
       const alreadyExists = dailyForecast.find(
         (day) => day.date === date
@@ -72,18 +74,85 @@ const getWeather = async (latitude, longitude) => {
     });
 
     // =========================
+    // SMART CITY ALERTS
+    // =========================
+
+    const alerts = [];
+
+    const temperature = Math.round(weatherData.main.temp);
+
+    const windSpeed = Number(
+      (weatherData.wind.speed * 3.6).toFixed(1)
+    );
+
+    const aqi = airQualityData.current.us_aqi;
+
+    // Extreme Heat
+    if (temperature >= 40) {
+      alerts.push({
+        type: "danger",
+        title: "Extreme Heat Alert",
+        message: "Temperature is extremely high. Stay hydrated and avoid direct sunlight.",
+      });
+    }
+
+    // High Temperature
+    else if (temperature >= 35) {
+      alerts.push({
+        type: "warning",
+        title: "High Temperature Warning",
+        message: "High temperature detected. Stay hydrated and limit outdoor activities.",
+      });
+    }
+
+    // Strong Wind
+    if (windSpeed >= 40) {
+      alerts.push({
+        type: "warning",
+        title: "Strong Wind Alert",
+        message: "Strong winds detected. Take care while travelling outdoors.",
+      });
+    }
+
+    // Poor Air Quality
+    if (aqi >= 151) {
+      alerts.push({
+        type: "danger",
+        title: "Poor Air Quality Alert",
+        message: "Air quality is unhealthy. Avoid prolonged outdoor activities.",
+      });
+    }
+
+    // Moderate Air Quality
+    else if (aqi >= 101) {
+      alerts.push({
+        type: "warning",
+        title: "Air Quality Warning",
+        message: "Air quality is unhealthy for sensitive groups.",
+      });
+    }
+
+    // No alerts
+    if (alerts.length === 0) {
+      alerts.push({
+        type: "safe",
+        title: "All Clear",
+        message: "No major weather or air quality alerts for this city.",
+      });
+    }
+
+    // =========================
     // RETURN DATA
     // =========================
 
     return {
       // Current Weather
-      temperature: Math.round(weatherData.main.temp),
+      temperature: temperature,
       feelsLike: Math.round(weatherData.main.feels_like),
       humidity: weatherData.main.humidity,
       pressure: weatherData.main.pressure,
-      windSpeed: Number(
-        (weatherData.wind.speed * 3.6).toFixed(1)
-      ),
+
+      windSpeed: windSpeed,
 
       condition: weatherData.weather[0].main,
       description: weatherData.weather[0].description,
@@ -95,6 +164,9 @@ const getWeather = async (latitude, longitude) => {
 
       // 5 Day Forecast
       forecast: dailyForecast,
+
+      // Smart City Alerts
+      alerts: alerts,
     };
   } catch (error) {
     console.error("Weather Service Error:", error.message);
