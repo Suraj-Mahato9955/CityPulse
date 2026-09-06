@@ -1308,6 +1308,85 @@ function App() {
 
           </div>
 
+          {/* ================= SMART CITY ALERTS ================= */}
+
+          <div className="large-card alerts-card">
+
+            <div className="large-card-header">
+
+              <div>
+                <span className="section-label">
+                  CITY ALERTS
+                </span>
+
+                <h3>
+                  Smart City Alerts
+                </h3>
+              </div>
+
+              <Bell size={21} />
+
+            </div>
+
+
+            {loadingWeather ? (
+
+              <div className="alerts-loading">
+                Checking city alerts...
+              </div>
+
+            ) : weather?.alerts?.length > 0 ? (
+
+              <div className="alerts-list">
+
+                {weather.alerts.map((alert, index) => (
+
+                  <div
+                    className={`alert-item ${alert.type}`}
+                    key={index}
+                  >
+
+                    <div className="alert-icon">
+
+                      {alert.type === "danger" ? (
+                        <AlertTriangle size={20} />
+                      ) : alert.type === "warning" ? (
+                        <Bell size={20} />
+                      ) : (
+                        <span>✓</span>
+                      )}
+
+                    </div>
+
+
+                    <div className="alert-content">
+
+                      <h4>
+                        {alert.title}
+                      </h4>
+
+                      <p>
+                        {alert.message}
+                      </p>
+
+                    </div>
+
+                  </div>
+
+                ))}
+
+              </div>
+
+            ) : (
+
+              <div className="alerts-loading">
+                No alert data available
+              </div>
+
+            )}
+
+          </div>
+
 
           {/* ================= LAST UPDATED ================= */}
 
