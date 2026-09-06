@@ -164,6 +164,8 @@ function App() {
 
   const [cities, setCities] = useState([]);
 
+  const [favorites, setFavorites] = useState([]);
+
   const [selectedCity, setSelectedCity] = useState(null);
 
   const [search, setSearch] = useState("");
@@ -180,7 +182,16 @@ function App() {
 
 
   // ================= FETCH CITIES =================
+  // ================= LOAD FAVORITES =================
 
+  useEffect(() => {
+
+    const savedFavorites =
+      JSON.parse(localStorage.getItem("citypulse-favorites")) || [];
+
+    setFavorites(savedFavorites);
+
+  }, []);
   useEffect(() => {
 
     const fetchCities = async () => {
@@ -355,6 +366,42 @@ function App() {
     setSearch("");
 
     setError("");
+
+  };
+
+  // ================= FAVORITE CITY =================
+
+  const toggleFavorite = (city) => {
+
+    if (!city) return;
+
+    const isFavorite = favorites.some(
+      (favorite) => favorite._id === city._id
+    );
+
+    let updatedFavorites;
+
+    if (isFavorite) {
+
+      updatedFavorites = favorites.filter(
+        (favorite) => favorite._id !== city._id
+      );
+
+    } else {
+
+      updatedFavorites = [
+        ...favorites,
+        city,
+      ];
+
+    }
+
+    setFavorites(updatedFavorites);
+
+    localStorage.setItem(
+      "citypulse-favorites",
+      JSON.stringify(updatedFavorites)
+    );
 
   };
 
