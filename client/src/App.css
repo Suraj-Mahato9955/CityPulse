@@ -1563,3 +1563,78 @@ button:disabled {
   }
 
 }
+/* =========================
+   5 DAY FORECAST
+========================= */
+
+.forecast-card {
+  margin-top: 24px;
+}
+
+.forecast-list {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.forecast-item {
+  padding: 20px 12px;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.forecast-item:hover {
+  transform: translateY(-4px);
+}
+
+.forecast-day {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.forecast-icon img {
+  width: 58px;
+  height: 58px;
+}
+
+.forecast-temp {
+  font-size: 25px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.forecast-condition {
+  font-size: 12px;
+  opacity: 0.65;
+  margin-top: 6px;
+  text-transform: capitalize;
+}
+
+.forecast-loading {
+  padding: 35px;
+  text-align: center;
+  opacity: 0.6;
+}
+
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+
+  .forecast-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+@media (max-width: 480px) {
+
+  .forecast-list {
+    grid-template-columns: 1fr;
+  }
+
+}
