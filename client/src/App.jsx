@@ -48,6 +48,16 @@ const getWeatherDescription = (code) => {
   return "Unknown";
 };
 
+const getForecastDay = (date) => {
+  const today = new Date().toISOString().split("T")[0];
+
+  if (date === today) return "Today";
+
+  return new Date(date).toLocaleDateString("en-US", {
+    weekday: "short",
+  });
+};
+
 
 // ================= AQI STATUS =================
 
@@ -1215,6 +1225,86 @@ function App() {
               </div>
 
             </div>
+
+          </div>
+
+          {/* ================= 5 DAY FORECAST ================= */}
+
+          <div className="large-card forecast-card">
+
+            <div className="large-card-header">
+
+              <div>
+                <span className="section-label">
+                  FORECAST
+                </span>
+
+                <h3>
+                  5-Day Weather Forecast
+                </h3>
+              </div>
+
+              <CloudSun size={21} />
+
+            </div>
+
+
+            {loadingWeather ? (
+
+              <div className="forecast-loading">
+                Loading forecast...
+              </div>
+
+            ) : weather?.forecast?.length > 0 ? (
+
+              <div className="forecast-list">
+
+                {weather.forecast.map((day, index) => (
+
+                  <div
+                    className="forecast-item"
+                    key={day.date}
+                  >
+
+                    <div className="forecast-day">
+                      {index === 0
+                        ? "Today"
+                        : getForecastDay(day.date)}
+                    </div>
+
+
+                    <div className="forecast-icon">
+
+                      <img
+                        src={`https://openweathermap.org/img/wn/${day.icon}@2x.png`}
+                        alt={day.description}
+                      />
+
+                    </div>
+
+
+                    <div className="forecast-temp">
+                      {day.temperature}°
+                    </div>
+
+
+                    <div className="forecast-condition">
+                      {day.condition}
+                    </div>
+
+                  </div>
+
+                ))}
+
+              </div>
+
+            ) : (
+
+              <div className="forecast-loading">
+                Forecast data unavailable
+              </div>
+
+            )}
 
           </div>
 
