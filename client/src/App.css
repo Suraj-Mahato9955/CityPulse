@@ -1761,3 +1761,119 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* =========================
+   RESPONSIVE DESIGN
+========================= */
+
+@media (max-width: 900px) {
+
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .main-content {
+    padding: 24px;
+  }
+
+  .hero-content {
+    padding: 60px 24px;
+  }
+
+}
+
+@media (max-width: 600px) {
+
+  /* Navbar */
+
+  .navbar {
+    padding: 14px 18px;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .menu-btn {
+    display: flex;
+  }
+
+
+  /* Main */
+
+  .main-content {
+    padding: 18px;
+  }
+
+
+  /* Hero */
+
+  .hero-content {
+    padding: 45px 18px;
+  }
+
+  .hero-content h1 {
+    font-size: 32px;
+  }
+
+  .hero-content p {
+    font-size: 14px;
+  }
+
+
+  /* Search */
+
+  .search-box {
+    width: 100%;
+  }
+
+
+  /* Dashboard cards */
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+
+  /* Large cards */
+
+  .large-card {
+    padding: 18px;
+  }
+
+
+  /* Forecast */
+
+  .forecast-list {
+    overflow-x: auto;
+  }
+
+  .forecast-item {
+    min-width: 120px;
+  }
+
+
+  /* Alert */
+
+  .alert-item {
+    padding: 13px;
+  }
+
+
+  /* City map */
+
+  .map-card {
+    min-height: 250px;
+  }
+
+
+  /* Section headings */
+
+  .large-card-header {
+    gap: 10px;
+  }
+
+  .large-card-header h3 {
+    font-size: 18px;
+  }
+
+}
