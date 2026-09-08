@@ -12,10 +12,10 @@ import {
   ArrowUpRight,
   RefreshCw,
   X,
+  Heart,
 } from "lucide-react";
 
 import "./App.css";
-
 
 // ================= WEATHER DESCRIPTION =================
 
@@ -48,16 +48,19 @@ const getWeatherDescription = (code) => {
   return "Unknown";
 };
 
+// ================= FORECAST DAY =================
+
 const getForecastDay = (date) => {
   const today = new Date().toISOString().split("T")[0];
 
-  if (date === today) return "Today";
+  if (date === today) {
+    return "Today";
+  }
 
   return new Date(date).toLocaleDateString("en-US", {
     weekday: "short",
   });
 };
-
 
 // ================= AQI STATUS =================
 
@@ -74,24 +77,6 @@ const getAQIStatus = (aqi) => {
 
   return "Hazardous";
 };
-
-
-// ================= AQI SHORT STATUS =================
-
-const getAQIShortStatus = (aqi) => {
-  if (aqi === null || aqi === undefined) {
-    return "Unknown";
-  }
-
-  if (aqi <= 50) return "Good";
-  if (aqi <= 100) return "Moderate";
-  if (aqi <= 150) return "Sensitive";
-  if (aqi <= 200) return "Unhealthy";
-  if (aqi <= 300) return "Very Unhealthy";
-
-  return "Hazardous";
-};
-
 
 // ================= AQI DESCRIPTION =================
 
@@ -123,7 +108,6 @@ const getAQIDescription = (aqi) => {
   return "Health warning: emergency conditions are expected. Avoid prolonged outdoor exposure.";
 };
 
-
 // ================= ALERT STATUS =================
 
 const getAlertStatus = (aqi) => {
@@ -138,7 +122,6 @@ const getAlertStatus = (aqi) => {
 
   return "Critical";
 };
-
 
 // ================= ALERT COUNT =================
 
@@ -155,11 +138,9 @@ const getAlertCount = (aqi) => {
   return "04";
 };
 
-
 // ================= APP =================
 
 function App() {
-
   // ================= STATE =================
 
   const [cities, setCities] = useState([]);
@@ -180,24 +161,25 @@ function App() {
 
   const [lastUpdated, setLastUpdated] = useState(null);
 
-
-  // ================= FETCH CITIES =================
   // ================= LOAD FAVORITES =================
 
   useEffect(() => {
+    try {
+      const savedFavorites =
+        JSON.parse(localStorage.getItem("citypulse-favorites")) || [];
 
-    const savedFavorites =
-      JSON.parse(localStorage.getItem("citypulse-favorites")) || [];
-
-    setFavorites(savedFavorites);
-
+      setFavorites(savedFavorites);
+    } catch (error) {
+      console.error("Error loading favorites:", error);
+      setFavorites([]);
+    }
   }, []);
+
+  // ================= FETCH CITIES =================
+
   useEffect(() => {
-
     const fetchCities = async () => {
-
       try {
-
         setLoadingCities(true);
         setError("");
 
@@ -216,39 +198,28 @@ function App() {
         if (data.cities && data.cities.length > 0) {
           setSelectedCity(data.cities[0]);
         }
-
       } catch (error) {
-
         console.error("Error fetching cities:", error);
 
         setError(
           "Unable to load cities. Please make sure the backend server is running."
         );
-
       } finally {
-
         setLoadingCities(false);
-
       }
-
     };
 
     fetchCities();
-
   }, []);
-
 
   // ================= FETCH WEATHER =================
 
   const fetchWeather = async (city) => {
-
     if (!city) return;
 
     try {
-
       setLoadingWeather(true);
       setError("");
-
       setWeather(null);
 
       const response = await fetch(
@@ -262,21 +233,14 @@ function App() {
       const data = await response.json();
 
       if (data.success) {
-
         setWeather(data.weather);
-
         setLastUpdated(new Date());
-
       } else {
-
         throw new Error(
           data.message || "Weather data unavailable"
         );
-
       }
-
     } catch (error) {
-
       console.error("Error fetching weather:", error);
 
       setWeather(null);
@@ -284,46 +248,31 @@ function App() {
       setError(
         "Unable to load weather data for this city."
       );
-
     } finally {
-
       setLoadingWeather(false);
-
     }
-
   };
-
 
   // ================= WEATHER WHEN CITY CHANGES =================
 
   useEffect(() => {
-
     if (!selectedCity) return;
 
     fetchWeather(selectedCity);
-
   }, [selectedCity]);
-
 
   // ================= FILTER CITIES =================
 
   const filteredCities = cities.filter((city) =>
-    city.name
-      .toLowerCase()
-      .includes(search.toLowerCase())
+    city.name.toLowerCase().includes(search.toLowerCase())
   );
-
 
   // ================= SEARCH FUNCTION =================
 
   const handleSearch = () => {
-
     if (filteredCities.length === 0) {
-
       setError("City not found.");
-
       return;
-
     }
 
     setSelectedCity(filteredCities[0]);
@@ -331,48 +280,34 @@ function App() {
     setSearch("");
 
     setError("");
-
   };
-
 
   // ================= ENTER KEY SEARCH =================
 
   const handleSearchKeyDown = (e) => {
-
     if (e.key === "Enter") {
       handleSearch();
     }
-
   };
-
 
   // ================= CLEAR SEARCH =================
 
   const clearSearch = () => {
-
     setSearch("");
-
     setError("");
-
   };
-
 
   // ================= SELECT CITY =================
 
   const handleCitySelect = (city) => {
-
     setSelectedCity(city);
-
     setSearch("");
-
     setError("");
-
   };
 
   // ================= FAVORITE CITY =================
 
   const toggleFavorite = (city) => {
-
     if (!city) return;
 
     const isFavorite = favorites.some(
@@ -382,18 +317,11 @@ function App() {
     let updatedFavorites;
 
     if (isFavorite) {
-
       updatedFavorites = favorites.filter(
         (favorite) => favorite._id !== city._id
       );
-
     } else {
-
-      updatedFavorites = [
-        ...favorites,
-        city,
-      ];
-
+      updatedFavorites = [...favorites, city];
     }
 
     setFavorites(updatedFavorites);
@@ -402,25 +330,19 @@ function App() {
       "citypulse-favorites",
       JSON.stringify(updatedFavorites)
     );
-
   };
-
 
   // ================= REFRESH WEATHER =================
 
   const handleRefresh = () => {
-
     if (selectedCity) {
       fetchWeather(selectedCity);
     }
-
   };
-
 
   // ================= SCROLL TO SECTION =================
 
   const scrollToSection = (id) => {
-
     const element = document.getElementById(id);
 
     if (element) {
@@ -428,19 +350,15 @@ function App() {
         behavior: "smooth",
       });
     }
-
   };
-
 
   // ================= AQI VALUE =================
 
   const currentAQI = weather?.us_aqi ?? null;
 
-
   // ================= RENDER =================
 
   return (
-
     <div className="app">
 
       {/* ================= NAVBAR ================= */}
@@ -458,7 +376,6 @@ function App() {
           </span>
 
         </div>
-
 
         <div className="nav-links">
 
@@ -491,7 +408,6 @@ function App() {
 
         </div>
 
-
         <div className="nav-actions">
 
           <button
@@ -500,7 +416,6 @@ function App() {
           >
             <Bell size={19} />
           </button>
-
 
           <button
             className="menu-btn"
@@ -512,7 +427,6 @@ function App() {
         </div>
 
       </nav>
-
 
       {/* ================= HERO ================= */}
 
@@ -532,33 +446,24 @@ function App() {
 
             </div>
 
-
             <h1>
-
               Understand Your
-
               <span>
                 City Better.
               </span>
-
             </h1>
 
-
             <p>
-
               Explore real-time weather, air quality,
               city information and important insights —
               all in one place.
-
             </p>
-
 
             {/* ================= SEARCH ================= */}
 
             <div className="search-box">
 
               <Search size={21} />
-
 
               <input
                 type="text"
@@ -570,9 +475,7 @@ function App() {
                 onKeyDown={handleSearchKeyDown}
               />
 
-
               {search && (
-
                 <button
                   className="clear-search"
                   onClick={clearSearch}
@@ -580,9 +483,7 @@ function App() {
                 >
                   <X size={17} />
                 </button>
-
               )}
-
 
               <button
                 className="search-btn"
@@ -592,7 +493,6 @@ function App() {
               </button>
 
             </div>
-
 
             {/* ================= SEARCH RESULTS ================= */}
 
@@ -625,7 +525,6 @@ function App() {
 
             )}
 
-
             {/* ================= ERROR ================= */}
 
             {error && (
@@ -636,7 +535,6 @@ function App() {
 
             )}
 
-
             {/* ================= POPULAR CITIES ================= */}
 
             <div className="popular-cities">
@@ -644,7 +542,6 @@ function App() {
               <span>
                 Popular:
               </span>
-
 
               {loadingCities ? (
 
@@ -680,7 +577,6 @@ function App() {
 
         </section>
 
-
         {/* ================= DASHBOARD ================= */}
 
         <section
@@ -702,18 +598,60 @@ function App() {
 
             </div>
 
-
             <div className="dashboard-status">
 
               {selectedCity && (
 
                 <span>
                   <MapPin size={14} />
-
                   {selectedCity.name}
                 </span>
 
               )}
+
+              {/* FAVORITE BUTTON */}
+
+              <button
+                className={`favorite-btn ${
+                  selectedCity &&
+                  favorites.some(
+                    (favorite) =>
+                      favorite._id === selectedCity._id
+                  )
+                    ? "favorite-active"
+                    : ""
+                }`}
+                onClick={() =>
+                  toggleFavorite(selectedCity)
+                }
+                disabled={!selectedCity}
+                title={
+                  selectedCity &&
+                  favorites.some(
+                    (favorite) =>
+                      favorite._id === selectedCity._id
+                  )
+                    ? "Remove from favorites"
+                    : "Add to favorites"
+                }
+              >
+
+                <Heart
+                  size={17}
+                  fill={
+                    selectedCity &&
+                    favorites.some(
+                      (favorite) =>
+                        favorite._id === selectedCity._id
+                    )
+                      ? "currentColor"
+                      : "none"
+                  }
+                />
+
+              </button>
+
+              {/* REFRESH BUTTON */}
 
               <button
                 className="refresh-btn"
@@ -737,11 +675,9 @@ function App() {
 
           </div>
 
-
           {/* ================= INFO CARDS ================= */}
 
           <div className="cards">
-
 
             {/* ================= WEATHER ================= */}
 
@@ -763,67 +699,54 @@ function App() {
 
               </div>
 
-
               <div className="card-main">
 
                 <h3>
 
                   {loadingWeather
-
                     ? "--"
-
                     : weather
-
                       ? `${Math.round(
-                        weather.temperature
-                      )}°`
-
+                          weather.temperature
+                        )}°`
                       : "--"}
 
                 </h3>
 
-
                 <span>
 
                   {loadingWeather
-
                     ? "Loading..."
-
                     : weather
-
                       ? weather.condition
-
                       : "No data"}
 
                 </span>
 
-
                 <small>
 
                   {weather
-                    ? `Feels like ${Math.round(weather.feelsLike)}°`
+                    ? `Feels like ${Math.round(
+                        weather.feelsLike
+                      )}°`
                     : "Temperature unavailable"}
 
                 </small>
 
               </div>
 
-
               <div className="card-footer">
 
                 <MapPin size={14} />
 
                 <span>
-
                   {selectedCity?.name ||
                     "Select a city"}
-
                 </span>
 
               </div>
 
             </div>
-
 
             {/* ================= AQI ================= */}
 
@@ -845,28 +768,21 @@ function App() {
 
               </div>
 
-
               <div className="card-main">
 
                 <h3>
-
                   {currentAQI ?? "--"}
-
                 </h3>
-
 
                 <div className="weather-info">
 
                   <span>
 
                     {currentAQI !== null
-
                       ? getAQIStatus(currentAQI)
-
                       : "Loading..."}
 
                   </span>
-
 
                   <small>
                     US AQI
@@ -876,15 +792,12 @@ function App() {
 
               </div>
 
-
               <div className="card-footer">
 
                 PM2.5 ·{" "}
 
                 {weather?.pm2_5 !== undefined
-
-                  ? weather.pm2_5.toFixed(1)
-
+                  ? Number(weather.pm2_5).toFixed(1)
                   : "--"}{" "}
 
                 μg/m³
@@ -892,7 +805,6 @@ function App() {
               </div>
 
             </div>
-
 
             {/* ================= POPULATION ================= */}
 
@@ -914,22 +826,18 @@ function App() {
 
               </div>
 
-
               <div className="card-main">
 
                 <h3>
 
                   {selectedCity?.population
-
                     ? `${(
-                      selectedCity.population /
-                      1000000
-                    ).toFixed(1)}M`
-
+                        selectedCity.population /
+                        1000000
+                      ).toFixed(1)}M`
                     : "N/A"}
 
                 </h3>
-
 
                 <div className="weather-info">
 
@@ -945,7 +853,6 @@ function App() {
 
               </div>
 
-
               <div className="card-footer">
 
                 {selectedCity?.name ||
@@ -954,7 +861,6 @@ function App() {
               </div>
 
             </div>
-
 
             {/* ================= ALERTS ================= */}
 
@@ -976,32 +882,23 @@ function App() {
 
               </div>
 
-
               <div className="card-main">
 
                 <h3>
-
                   {getAlertCount(currentAQI)}
-
                 </h3>
-
 
                 <div className="weather-info">
 
                   <span>
-
                     {getAlertStatus(currentAQI)}
-
                   </span>
-
 
                   <small>
 
                     {currentAQI !== null &&
-                      currentAQI > 100
-
+                    currentAQI > 100
                       ? "Air quality alert"
-
                       : "City alerts"}
 
                   </small>
@@ -1010,15 +907,21 @@ function App() {
 
               </div>
 
-
               <div className="card-footer">
 
                 <span>
+
                   Wind ·{" "}
-                  {weather?.windSpeed !== null && weather?.windSpeed !== undefined
-                    ? `${Number(weather.windSpeed).toFixed(1)}`
+
+                  {weather?.windSpeed !== null &&
+                  weather?.windSpeed !== undefined
+                    ? Number(
+                        weather.windSpeed
+                      ).toFixed(1)
                     : "--"}{" "}
+
                   km/h
+
                 </span>
 
               </div>
@@ -1027,11 +930,9 @@ function App() {
 
           </div>
 
-
           {/* ================= LOWER DASHBOARD ================= */}
 
           <div className="dashboard-grid">
-
 
             {/* ================= MAP ================= */}
 
@@ -1054,7 +955,6 @@ function App() {
 
                 </div>
 
-
                 <button
                   className="small-btn"
                   onClick={() =>
@@ -1070,18 +970,15 @@ function App() {
 
               </div>
 
-
               <div className="map-placeholder">
 
                 <div className="map-grid"></div>
-
 
                 <div className="map-pin">
 
                   <MapPin size={28} />
 
                 </div>
-
 
                 <div className="map-location">
 
@@ -1092,7 +989,6 @@ function App() {
 
                   </strong>
 
-
                   <span>
 
                     {selectedCity?.state ||
@@ -1101,7 +997,6 @@ function App() {
                   </span>
 
                 </div>
-
 
                 {/* ================= COORDINATES ================= */}
 
@@ -1115,7 +1010,6 @@ function App() {
                       "--"}
 
                   </span>
-
 
                   <span>
 
@@ -1131,7 +1025,6 @@ function App() {
               </div>
 
             </div>
-
 
             {/* ================= AQI SUMMARY ================= */}
 
@@ -1155,28 +1048,21 @@ function App() {
 
               </div>
 
-
               <div className="aqi-score">
 
                 <strong>
-
                   {currentAQI ?? "--"}
-
                 </strong>
-
 
                 <span>
 
                   {currentAQI !== null
-
                     ? getAQIStatus(currentAQI)
-
                     : "Loading..."}
 
                 </span>
 
               </div>
-
 
               {/* ================= AQI BAR ================= */}
 
@@ -1185,20 +1071,18 @@ function App() {
                 <div
                   className="aqi-progress"
                   style={{
-                    width: `${currentAQI !== null
-                      ? Math.min(
-                        (currentAQI /
-                          300) *
-                        100,
-                        100
-                      )
-                      : 0
-                      }%`,
+                    width: `${
+                      currentAQI !== null
+                        ? Math.min(
+                            (currentAQI / 300) * 100,
+                            100
+                          )
+                        : 0
+                    }%`,
                   }}
                 ></div>
 
               </div>
-
 
               <div className="aqi-scale">
 
@@ -1216,7 +1100,6 @@ function App() {
 
               </div>
 
-
               {/* ================= AQI DESCRIPTION ================= */}
 
               <p className="aqi-description">
@@ -1224,7 +1107,6 @@ function App() {
                 {getAQIDescription(currentAQI)}
 
               </p>
-
 
               {/* ================= AQI DETAILS ================= */}
 
@@ -1239,17 +1121,14 @@ function App() {
                   <strong>
 
                     {weather?.pm2_5 !== undefined
-
-                      ? `${weather.pm2_5.toFixed(
-                        1
-                      )} μg/m³`
-
+                      ? `${Number(
+                          weather.pm2_5
+                        ).toFixed(1)} μg/m³`
                       : "--"}
 
                   </strong>
 
                 </div>
-
 
                 <div>
 
@@ -1260,9 +1139,12 @@ function App() {
                   <strong>
 
                     {weather?.windSpeed !== null &&
-                      weather?.windSpeed !== undefined
-                      ? `${Number(weather.windSpeed).toFixed(1)}`
+                    weather?.windSpeed !== undefined
+                      ? Number(
+                          weather.windSpeed
+                        ).toFixed(1)
                       : "--"}{" "}
+
                     km/h
 
                   </strong>
@@ -1282,6 +1164,7 @@ function App() {
             <div className="large-card-header">
 
               <div>
+
                 <span className="section-label">
                   FORECAST
                 </span>
@@ -1289,12 +1172,12 @@ function App() {
                 <h3>
                   5-Day Weather Forecast
                 </h3>
+
               </div>
 
               <CloudSun size={21} />
 
             </div>
-
 
             {loadingWeather ? (
 
@@ -1306,49 +1189,58 @@ function App() {
 
               <div className="forecast-list">
 
-                {weather.forecast.map((day, index) => (
+                {weather.forecast.map(
+                  (day, index) => (
 
-                  <div
-                    className="forecast-item"
-                    key={day.date}
-                  >
+                    <div
+                      className="forecast-item"
+                      key={day.date}
+                    >
 
-                    <div className="forecast-day">
-                      {index === 0
-                        ? "Today"
-                        : getForecastDay(day.date)}
+                      <div className="forecast-day">
+
+                        {index === 0
+                          ? "Today"
+                          : getForecastDay(
+                              day.date
+                            )}
+
+                      </div>
+
+                      <div className="forecast-icon">
+
+                        <img
+                          src={`https://openweathermap.org/img/wn/${day.icon}@2x.png`}
+                          alt={day.description}
+                        />
+
+                      </div>
+
+                      <div className="forecast-temp">
+
+                        {day.temperature}°
+
+                      </div>
+
+                      <div className="forecast-condition">
+
+                        {day.condition}
+
+                      </div>
+
                     </div>
 
-
-                    <div className="forecast-icon">
-
-                      <img
-                        src={`https://openweathermap.org/img/wn/${day.icon}@2x.png`}
-                        alt={day.description}
-                      />
-
-                    </div>
-
-
-                    <div className="forecast-temp">
-                      {day.temperature}°
-                    </div>
-
-
-                    <div className="forecast-condition">
-                      {day.condition}
-                    </div>
-
-                  </div>
-
-                ))}
+                  )
+                )}
 
               </div>
 
             ) : (
 
               <div className="forecast-loading">
+
                 Forecast data unavailable
+
               </div>
 
             )}
@@ -1362,6 +1254,7 @@ function App() {
             <div className="large-card-header">
 
               <div>
+
                 <span className="section-label">
                   CITY ALERTS
                 </span>
@@ -1369,71 +1262,83 @@ function App() {
                 <h3>
                   Smart City Alerts
                 </h3>
+
               </div>
 
               <Bell size={21} />
 
             </div>
 
-
             {loadingWeather ? (
 
               <div className="alerts-loading">
+
                 Checking city alerts...
+
               </div>
 
             ) : weather?.alerts?.length > 0 ? (
 
               <div className="alerts-list">
 
-                {weather.alerts.map((alert, index) => (
+                {weather.alerts.map(
+                  (alert, index) => (
 
-                  <div
-                    className={`alert-item ${alert.type}`}
-                    key={index}
-                  >
+                    <div
+                      className={`alert-item ${alert.type}`}
+                      key={index}
+                    >
 
-                    <div className="alert-icon">
+                      <div className="alert-icon">
 
-                      {alert.type === "danger" ? (
-                        <AlertTriangle size={20} />
-                      ) : alert.type === "warning" ? (
-                        <Bell size={20} />
-                      ) : (
-                        <span>✓</span>
-                      )}
+                        {alert.type === "danger" ? (
+
+                          <AlertTriangle size={20} />
+
+                        ) : alert.type === "warning" ? (
+
+                          <Bell size={20} />
+
+                        ) : (
+
+                          <span>
+                            ✓
+                          </span>
+
+                        )}
+
+                      </div>
+
+                      <div className="alert-content">
+
+                        <h4>
+                          {alert.title}
+                        </h4>
+
+                        <p>
+                          {alert.message}
+                        </p>
+
+                      </div>
 
                     </div>
 
-
-                    <div className="alert-content">
-
-                      <h4>
-                        {alert.title}
-                      </h4>
-
-                      <p>
-                        {alert.message}
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                ))}
+                  )
+                )}
 
               </div>
 
             ) : (
 
               <div className="alerts-loading">
+
                 No alert data available
+
               </div>
 
             )}
 
           </div>
-
 
           {/* ================= LAST UPDATED ================= */}
 
@@ -1442,19 +1347,18 @@ function App() {
             {lastUpdated
 
               ? `Last updated: ${lastUpdated.toLocaleTimeString(
-                [],
-                {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }
-              )}`
+                  [],
+                  {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }
+                )}`
 
               : "Waiting for live data..."}
 
           </div>
 
         </section>
-
 
         {/* ================= ABOUT ================= */}
 
@@ -1467,7 +1371,6 @@ function App() {
             ABOUT CITYPULSE
           </span>
 
-
           <h2>
 
             One place to understand
@@ -1477,7 +1380,6 @@ function App() {
             </span>
 
           </h2>
-
 
           <p>
 
@@ -1494,6 +1396,5 @@ function App() {
     </div>
   );
 }
-
 
 export default App;
