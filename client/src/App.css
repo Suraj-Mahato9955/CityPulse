@@ -1877,3 +1877,250 @@ button:disabled {
   }
 
 }
+/* =========================
+   RESPONSIVE DESIGN
+========================= */
+
+/* TABLET */
+@media (max-width: 900px) {
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .forecast-grid {
+    grid-template-columns: repeat(5, minmax(140px, 1fr));
+    overflow-x: auto;
+  }
+
+  .hero-content {
+    padding: 40px 25px;
+  }
+
+}
+
+
+/* MOBILE */
+@media (max-width: 600px) {
+
+  /* GLOBAL */
+
+  body {
+    overflow-x: hidden;
+  }
+
+  .app {
+    width: 100%;
+  }
+
+
+  /* NAVBAR */
+
+  .navbar {
+    padding: 14px 16px;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .menu-btn {
+    display: flex;
+  }
+
+
+  /* HERO */
+
+  .hero {
+    padding: 25px 16px;
+  }
+
+  .hero-content {
+    padding: 25px 0;
+  }
+
+  .hero h1 {
+    font-size: 32px;
+    line-height: 1.15;
+  }
+
+  .hero p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+
+  /* SEARCH */
+
+  .search-box {
+    width: 100%;
+  }
+
+  .search-box input {
+    width: 100%;
+    font-size: 14px;
+  }
+
+
+  /* DASHBOARD */
+
+  .dashboard {
+    padding: 20px 16px;
+  }
+
+  .dashboard-grid,
+  .main-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+
+  /* CARDS */
+
+  .large-card,
+  .small-card {
+    width: 100%;
+  }
+
+
+  /* STATS */
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+
+  /* WEATHER CARD */
+
+  .weather-card {
+    padding: 20px;
+  }
+
+  .weather-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .temperature {
+    font-size: 42px;
+  }
+
+
+  /* AQI */
+
+  .aqi-card {
+    padding: 20px;
+  }
+
+  .aqi-value {
+    font-size: 42px;
+  }
+
+
+  /* FORECAST */
+
+  .forecast-grid {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding-bottom: 10px;
+
+    scrollbar-width: thin;
+  }
+
+  .forecast-card {
+    min-width: 135px;
+    flex-shrink: 0;
+  }
+
+
+  /* POPULAR CITIES */
+
+  .popular-cities {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .city-button {
+    min-width: max-content;
+    white-space: nowrap;
+  }
+
+
+  /* CITY LIST */
+
+  .city-list {
+    grid-template-columns: 1fr;
+  }
+
+
+  /* ALERTS */
+
+  .alerts-card {
+    margin-top: 16px;
+  }
+
+  .alert-item {
+    padding: 13px;
+    gap: 10px;
+  }
+
+  .alert-content h4 {
+    font-size: 14px;
+  }
+
+  .alert-content p {
+    font-size: 12px;
+  }
+
+
+  /* FAVORITE BUTTON */
+
+  .favorite-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+
+  /* BUTTONS */
+
+  button {
+    min-height: 40px;
+  }
+
+
+  /* ABOUT */
+
+  .about-container {
+    padding: 25px 16px;
+  }
+
+  .about-container h1 {
+    font-size: 30px;
+  }
+
+
+  /* FOOTER */
+
+  .footer {
+    padding: 25px 16px;
+    text-align: center;
+  }
+
+}
