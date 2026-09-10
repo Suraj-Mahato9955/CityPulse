@@ -21,29 +21,13 @@ import "./App.css";
 
 const getWeatherDescription = (code) => {
   if (code === 0) return "Clear Sky";
-  if (code === 1) return "Mainly Clear";
-  if (code === 2) return "Partly Cloudy";
-  if (code === 3) return "Overcast";
-
-  if ([45, 48].includes(code)) {
-    return "Fog";
-  }
-
-  if ([51, 53, 55, 56, 57].includes(code)) {
-    return "Drizzle";
-  }
-
-  if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) {
-    return "Rain";
-  }
-
-  if ([71, 73, 75, 77, 85, 86].includes(code)) {
-    return "Snow";
-  }
-
-  if ([95, 96, 99].includes(code)) {
-    return "Thunderstorm";
-  }
+  if ([1, 2, 3].includes(code)) return "Partly Cloudy";
+  if ([45, 48].includes(code)) return "Foggy";
+  if ([51, 53, 55].includes(code)) return "Drizzle";
+  if ([61, 63, 65].includes(code)) return "Rain";
+  if ([71, 73, 75].includes(code)) return "Snow";
+  if ([80, 81, 82].includes(code)) return "Rain Showers";
+  if ([95, 96, 99].includes(code)) return "Thunderstorm";
 
   return "Unknown";
 };
@@ -51,13 +35,20 @@ const getWeatherDescription = (code) => {
 // ================= FORECAST DAY =================
 
 const getForecastDay = (date) => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date();
+  const forecastDate = new Date(date);
 
-  if (date === today) {
-    return "Today";
-  }
+  today.setHours(0, 0, 0, 0);
+  forecastDate.setHours(0, 0, 0, 0);
 
-  return new Date(date).toLocaleDateString("en-US", {
+  const difference = Math.round(
+    (forecastDate - today) / (1000 * 60 * 60 * 24)
+  );
+
+  if (difference <= 0) return "Today";
+  if (difference === 1) return "Tomorrow";
+
+  return forecastDate.toLocaleDateString("en-US", {
     weekday: "short",
   });
 };
@@ -65,13 +56,11 @@ const getForecastDay = (date) => {
 // ================= AQI STATUS =================
 
 const getAQIStatus = (aqi) => {
-  if (aqi === null || aqi === undefined) {
-    return "Unknown";
-  }
+  if (aqi === null || aqi === undefined) return "Unknown";
 
   if (aqi <= 50) return "Good";
   if (aqi <= 100) return "Moderate";
-  if (aqi <= 150) return "Unhealthy for Sensitive Groups";
+  if (aqi <= 150) return "Sensitive";
   if (aqi <= 200) return "Unhealthy";
   if (aqi <= 300) return "Very Unhealthy";
 
@@ -82,66 +71,46 @@ const getAQIStatus = (aqi) => {
 
 const getAQIDescription = (aqi) => {
   if (aqi === null || aqi === undefined) {
-    return "Air quality data is currently unavailable.";
+    return "AQI data unavailable";
   }
 
-  if (aqi <= 50) {
-    return "Air quality is good and poses little or no risk.";
-  }
+  if (aqi <= 50) return "Air quality is good";
+  if (aqi <= 100) return "Air quality is acceptable";
+  if (aqi <= 150) return "Sensitive people should take care";
+  if (aqi <= 200) return "Everyone may experience effects";
+  if (aqi <= 300) return "Health alert for everyone";
 
-  if (aqi <= 100) {
-    return "Air quality is acceptable, but some sensitive people may experience minor effects.";
-  }
-
-  if (aqi <= 150) {
-    return "Sensitive people may experience health effects from the current air quality.";
-  }
-
-  if (aqi <= 200) {
-    return "Everyone may begin to experience health effects from the current air quality.";
-  }
-
-  if (aqi <= 300) {
-    return "Health alert: the risk of health effects is increased for everyone.";
-  }
-
-  return "Health warning: emergency conditions are expected. Avoid prolonged outdoor exposure.";
+  return "Health emergency conditions";
 };
 
 // ================= ALERT STATUS =================
 
-const getAlertStatus = (aqi) => {
-  if (aqi === null || aqi === undefined) {
-    return "Unknown";
+const getAlertStatus = (alerts) => {
+  if (!alerts || alerts.length === 0) {
+    return "Safe";
   }
 
-  if (aqi <= 50) return "Safe";
-  if (aqi <= 100) return "Low";
-  if (aqi <= 150) return "Moderate";
-  if (aqi <= 200) return "High";
+  if (alerts.some((alert) => alert.type === "danger")) {
+    return "Critical";
+  }
 
-  return "Critical";
+  return "Warning";
 };
 
 // ================= ALERT COUNT =================
 
-const getAlertCount = (aqi) => {
-  if (aqi === null || aqi === undefined) {
-    return "--";
-  }
+const getAlertCount = (alerts) => {
+  if (!alerts) return 0;
 
-  if (aqi <= 50) return "00";
-  if (aqi <= 100) return "01";
-  if (aqi <= 150) return "02";
-  if (aqi <= 200) return "03";
-
-  return "04";
+  return alerts.length;
 };
 
 // ================= APP =================
 
 function App() {
-  // ================= STATE =================
+  // ================= STATES =================
+
+  const [currentPage, setCurrentPage] = useState("dashboard");
 
   const [cities, setCities] = useState([]);
 
@@ -161,14 +130,14 @@ function App() {
 
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  const [currentPage, setCurrentPage] = useState("dashboard");
-
   // ================= LOAD FAVORITES =================
 
   useEffect(() => {
     try {
       const savedFavorites =
-        JSON.parse(localStorage.getItem("citypulse-favorites")) || [];
+        JSON.parse(
+          localStorage.getItem("citypulse-favorites")
+        ) || [];
 
       setFavorites(savedFavorites);
     } catch (error) {
@@ -190,21 +159,23 @@ function App() {
         );
 
         if (!response.ok) {
-          throw new Error("Failed to fetch cities");
+          throw new Error("Failed to load cities");
         }
 
         const data = await response.json();
 
-        setCities(data.cities || []);
+        const cityList = data.cities || [];
 
-        if (data.cities && data.cities.length > 0) {
-          setSelectedCity(data.cities[0]);
+        setCities(cityList);
+
+        if (cityList.length > 0) {
+          setSelectedCity(cityList[0]);
         }
       } catch (error) {
-        console.error("Error fetching cities:", error);
+        console.error("City Error:", error);
 
         setError(
-          "Unable to load cities. Please make sure the backend server is running."
+          "Unable to load cities. Please check the backend."
         );
       } finally {
         setLoadingCities(false);
@@ -216,98 +187,58 @@ function App() {
 
   // ================= FETCH WEATHER =================
 
-  const fetchWeather = async (city) => {
-    if (!city) return;
-
-    try {
-      setLoadingWeather(true);
-      setError("");
-      setWeather(null);
-
-      const response = await fetch(
-        `http://localhost:5000/api/cities/${city._id}/weather`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch weather");
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setWeather(data.weather);
-        setLastUpdated(new Date());
-      } else {
-        throw new Error(
-          data.message || "Weather data unavailable"
-        );
-      }
-    } catch (error) {
-      console.error("Error fetching weather:", error);
-
-      setWeather(null);
-
-      setError(
-        "Unable to load weather data for this city."
-      );
-    } finally {
-      setLoadingWeather(false);
-    }
-  };
-
-  // ================= WEATHER WHEN CITY CHANGES =================
-
   useEffect(() => {
-    if (!selectedCity) return;
+    const fetchWeather = async () => {
+      if (!selectedCity?._id) return;
 
-    fetchWeather(selectedCity);
+      try {
+        setLoadingWeather(true);
+        setError("");
+
+        const response = await fetch(
+          "http://localhost:5000/api/cities/" +
+            selectedCity._id +
+            "/weather"
+        );
+
+        if (!response.ok) {
+          throw new Error("Unable to load weather data");
+        }
+
+        const data = await response.json();
+
+        setWeather(data.weather || data);
+
+        setLastUpdated(new Date());
+      } catch (error) {
+        console.error("Weather Error:", error);
+
+        setError(
+          "Unable to load weather data for this city"
+        );
+
+        setWeather(null);
+      } finally {
+        setLoadingWeather(false);
+      }
+    };
+
+    fetchWeather();
   }, [selectedCity]);
-
-  // ================= FILTER CITIES =================
-
-  const filteredCities = cities.filter((city) =>
-    city.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  // ================= SEARCH FUNCTION =================
-
-  const handleSearch = () => {
-    if (filteredCities.length === 0) {
-      setError("City not found.");
-      return;
-    }
-
-    setSelectedCity(filteredCities[0]);
-
-    setSearch("");
-
-    setError("");
-  };
-
-  // ================= ENTER KEY SEARCH =================
-
-  const handleSearchKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleSearch();
-    }
-  };
-
-  // ================= CLEAR SEARCH =================
-
-  const clearSearch = () => {
-    setSearch("");
-    setError("");
-  };
 
   // ================= SELECT CITY =================
 
-  const handleCitySelect = (city) => {
+  const selectCity = (city) => {
+    if (!city) return;
+
     setSelectedCity(city);
+
     setSearch("");
-    setError("");
+
+    setCurrentPage("dashboard");
   };
 
-  // ================= FAVORITE CITY =================
+  // ================= TOGGLE FAVORITE =================
 
   const toggleFavorite = (city) => {
     if (!city) return;
@@ -336,112 +267,104 @@ function App() {
 
   // ================= REFRESH WEATHER =================
 
-  const handleRefresh = () => {
-    if (selectedCity) {
-      fetchWeather(selectedCity);
+  const refreshWeather = async () => {
+    if (!selectedCity?._id) return;
+
+    try {
+      setLoadingWeather(true);
+      setError("");
+
+      const response = await fetch(
+        "http://localhost:5000/api/cities/" +
+          selectedCity._id +
+          "/weather"
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to refresh weather");
+      }
+
+      const data = await response.json();
+
+      setWeather(data.weather || data);
+
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error("Refresh Weather Error:", error);
+
+      setError("Unable to refresh weather data");
+    } finally {
+      setLoadingWeather(false);
     }
   };
 
-  // ================= SCROLL TO SECTION =================
+  // ================= FILTER CITIES =================
 
-  const scrollToSection = (id) => {
-    const element = document.getElementById(id);
+  const filteredCities = cities.filter((city) => {
+    const cityName = city.name || "";
 
-    if (element) {
-      element.scrollIntoView({
-        behavior: "smooth",
-      });
-    }
-  };
+    return cityName
+      .toLowerCase()
+      .includes(search.toLowerCase());
+  });
 
-  // ================= AQI VALUE =================
+  // ================= CURRENT DATA =================
 
   const currentAQI = weather?.us_aqi ?? null;
 
-  // ================= RENDER =================
+  const currentPM25 = weather?.pm2_5 ?? null;
 
-  return (
-    <div className="app">
+  const currentTemperature =
+    weather?.temperature ?? null;
 
-      {/* ================= NAVBAR ================= */}
+  const currentWind = weather?.windSpeed ?? null;
 
-      <nav className="navbar">
+  const currentCondition =
+    weather?.condition ||
+    getWeatherDescription(weather?.weather_code);
 
-  <div
-    className="logo"
-    onClick={() => setCurrentPage("dashboard")}
-  >
-    <span className="logo-icon">🌆</span>
-    <span>CityPulse</span>
-  </div>
+  const alerts = weather?.alerts || [];
 
-  <div className="nav-links">
+  const alertStatus = getAlertStatus(alerts);
 
-    <button
-      className={currentPage === "dashboard" ? "nav-active" : ""}
-      onClick={() => setCurrentPage("dashboard")}
-    >
-      Dashboard
-    </button>
+  const alertCount = getAlertCount(alerts);
 
-    <button
-      className={currentPage === "explore" ? "nav-active" : ""}
-      onClick={() => setCurrentPage("explore")}
-    >
-      Explore Cities
-    </button>
+  const isSelectedFavorite =
+    selectedCity &&
+    favorites.some(
+      (favorite) =>
+        favorite._id === selectedCity._id
+    );
 
-    <button
-      className={currentPage === "about" ? "nav-active" : ""}
-      onClick={() => setCurrentPage("about")}
-    >
-      About
-    </button>
+  // ================= DASHBOARD PAGE =================
 
-  </div>
+  const renderDashboard = () => {
+    return (
+      <main className="main-content">
+        {/* ================= HERO ================= */}
 
-  <button className="menu-btn">
-    <Menu size={22} />
-  </button>
-
-</nav>
-
-      {/* ================= HERO ================= */}
-
-      <main>
-
-        <section className="hero">
-
+        <section className="hero-section">
           <div className="hero-content">
-
-            <div className="location-badge">
-
-              <MapPin size={16} />
-
-              <span>
-                Smart City Intelligence
-              </span>
-
-            </div>
+            <span className="section-label">
+              SMART CITY MONITORING
+            </span>
 
             <h1>
-              Understand Your
-              <span>
-                City Better.
-              </span>
+              Monitor Your City.
+              <br />
+              <span>Understand Your Air.</span>
             </h1>
 
             <p>
-              Explore real-time weather, air quality,
-              city information and important insights —
-              all in one place.
+              Get real-time weather, air quality,
+              forecasts and smart city alerts
+              in one place.
             </p>
 
-            {/* ================= SEARCH ================= */}
+            {/* SEARCH */}
 
             <div className="search-box">
-
-              <Search size={21} />
+              <Search size={20} />
 
               <input
                 type="text"
@@ -450,927 +373,1193 @@ function App() {
                 onChange={(e) =>
                   setSearch(e.target.value)
                 }
-                onKeyDown={handleSearchKeyDown}
               />
 
               {search && (
                 <button
-                  className="clear-search"
-                  onClick={clearSearch}
-                  title="Clear search"
+                  className="search-clear"
+                  onClick={() => setSearch("")}
                 >
-                  <X size={17} />
+                  <X size={18} />
                 </button>
               )}
-
-              <button
-                className="search-btn"
-                onClick={handleSearch}
-              >
-                Search
-              </button>
-
             </div>
 
-            {/* ================= SEARCH RESULTS ================= */}
+            {/* SEARCH RESULTS */}
 
             {search && filteredCities.length > 0 && (
-
               <div className="search-results">
-
                 {filteredCities
                   .slice(0, 5)
                   .map((city) => (
-
                     <button
                       key={city._id}
+                      className="search-result-item"
                       onClick={() =>
-                        handleCitySelect(city)
+                        selectCity(city)
                       }
                     >
-
-                      <MapPin size={15} />
+                      <MapPin size={16} />
 
                       <span>
-                        {city.name}, {city.state}
+                        {city.name}
+                        {city.state
+                          ? `, ${city.state}`
+                          : ""}
                       </span>
-
                     </button>
-
                   ))}
-
               </div>
-
             )}
 
-            {/* ================= ERROR ================= */}
-
-            {error && (
-
-              <div className="error-message">
-                {error}
+            {search && filteredCities.length === 0 && (
+              <div className="search-results">
+                <div className="no-results">
+                  No cities found
+                </div>
               </div>
-
             )}
+          </div>
+        </section>
 
-            {/* ================= POPULAR CITIES ================= */}
+        {/* ================= ERROR ================= */}
 
-            <div className="popular-cities">
+        {error && (
+          <div className="error-message">
+            <AlertTriangle size={18} />
+            <span>{error}</span>
+          </div>
+        )}
 
-              <span>
-                Popular:
+        {/* ================= POPULAR CITIES ================= */}
+
+        <section className="content-section">
+          <div className="section-heading">
+            <div>
+              <span className="section-label">
+                QUICK ACCESS
               </span>
 
-              {loadingCities ? (
+              <h2>Popular Cities</h2>
+            </div>
 
-                <span>
-                  Loading cities...
-                </span>
+            <button
+              className="text-button"
+              onClick={() =>
+                setCurrentPage("explore")
+              }
+            >
+              Explore all
+              <ArrowUpRight size={16} />
+            </button>
+          </div>
 
-              ) : (
-
-                cities.map((city) => (
-
+          <div className="city-pills">
+            {loadingCities ? (
+              <div className="loading-text">
+                Loading cities...
+              </div>
+            ) : (
+              cities
+                .slice(0, 6)
+                .map((city) => (
                   <button
                     key={city._id}
-                    className={
+                    className={`city-pill ${
                       selectedCity?._id === city._id
                         ? "active-city"
                         : ""
-                    }
+                    }`}
                     onClick={() =>
-                      handleCitySelect(city)
+                      selectCity(city)
                     }
                   >
+                    <MapPin size={15} />
                     {city.name}
                   </button>
-
                 ))
-
-              )}
-
-            </div>
-
+            )}
           </div>
-
         </section>
 
-        {/* ================= DASHBOARD ================= */}
+        {/* ================= CURRENT CITY ================= */}
 
-        <section
-          className="dashboard-preview"
-          id="dashboard"
-        >
+        <section className="dashboard-grid">
+          {/* WEATHER CARD */}
 
-          <div className="section-heading">
-
-            <div>
-
-              <span className="section-label">
-                LIVE DATA
-              </span>
-
-              <h2>
-                City Overview
-              </h2>
-
-            </div>
-
-            <div className="dashboard-status">
-
-              {selectedCity && (
-
-                <span>
-                  <MapPin size={14} />
-                  {selectedCity.name}
+          <div className="large-card weather-card">
+            <div className="large-card-header">
+              <div>
+                <span className="section-label">
+                  CURRENT WEATHER
                 </span>
-
-              )}
-
-              {/* FAVORITE BUTTON */}
-
-              <button
-                className={`favorite-btn ${
-                  selectedCity &&
-                  favorites.some(
-                    (favorite) =>
-                      favorite._id === selectedCity._id
-                  )
-                    ? "favorite-active"
-                    : ""
-                }`}
-                onClick={() =>
-                  toggleFavorite(selectedCity)
-                }
-                disabled={!selectedCity}
-                title={
-                  selectedCity &&
-                  favorites.some(
-                    (favorite) =>
-                      favorite._id === selectedCity._id
-                  )
-                    ? "Remove from favorites"
-                    : "Add to favorites"
-                }
-              >
-
-                <Heart
-                  size={17}
-                  fill={
-                    selectedCity &&
-                    favorites.some(
-                      (favorite) =>
-                        favorite._id === selectedCity._id
-                    )
-                      ? "currentColor"
-                      : "none"
-                  }
-                />
-
-              </button>
-
-              {/* REFRESH BUTTON */}
-
-              <button
-                className="refresh-btn"
-                onClick={handleRefresh}
-                disabled={loadingWeather}
-                title="Refresh weather"
-              >
-
-                <RefreshCw
-                  size={16}
-                  className={
-                    loadingWeather
-                      ? "spinning"
-                      : ""
-                  }
-                />
-
-              </button>
-
-            </div>
-
-          </div>
-
-          {/* ================= INFO CARDS ================= */}
-
-          <div className="cards">
-
-            {/* ================= WEATHER ================= */}
-
-            <div className="info-card weather-card">
-
-              <div className="card-top">
-
-                <div className="card-title">
-
-                  <CloudSun size={19} />
-
-                  <span>
-                    Weather
-                  </span>
-
-                </div>
-
-                <ArrowUpRight size={18} />
-
-              </div>
-
-              <div className="card-main">
 
                 <h3>
-
-                  {loadingWeather
-                    ? "--"
-                    : weather
-                      ? `${Math.round(
-                          weather.temperature
-                        )}°`
-                      : "--"}
-
-                </h3>
-
-                <span>
-
-                  {loadingWeather
-                    ? "Loading..."
-                    : weather
-                      ? weather.condition
-                      : "No data"}
-
-                </span>
-
-                <small>
-
-                  {weather
-                    ? `Feels like ${Math.round(
-                        weather.feelsLike
-                      )}°`
-                    : "Temperature unavailable"}
-
-                </small>
-
-              </div>
-
-              <div className="card-footer">
-
-                <MapPin size={14} />
-
-                <span>
                   {selectedCity?.name ||
                     "Select a city"}
-                </span>
-
-              </div>
-
-            </div>
-
-            {/* ================= AQI ================= */}
-
-            <div className="info-card aqi-card">
-
-              <div className="card-top">
-
-                <div className="card-title">
-
-                  <Wind size={19} />
-
-                  <span>
-                    Air Quality
-                  </span>
-
-                </div>
-
-                <ArrowUpRight size={18} />
-
-              </div>
-
-              <div className="card-main">
-
-                <h3>
-                  {currentAQI ?? "--"}
                 </h3>
-
-                <div className="weather-info">
-
-                  <span>
-
-                    {currentAQI !== null
-                      ? getAQIStatus(currentAQI)
-                      : "Loading..."}
-
-                  </span>
-
-                  <small>
-                    US AQI
-                  </small>
-
-                </div>
-
               </div>
 
-              <div className="card-footer">
-
-                PM2.5 ·{" "}
-
-                {weather?.pm2_5 !== undefined
-                  ? Number(weather.pm2_5).toFixed(1)
-                  : "--"}{" "}
-
-                μg/m³
-
-              </div>
-
-            </div>
-
-            {/* ================= POPULATION ================= */}
-
-            <div className="info-card">
-
-              <div className="card-top">
-
-                <div className="card-title">
-
-                  <Users size={19} />
-
-                  <span>
-                    Population
-                  </span>
-
-                </div>
-
-                <ArrowUpRight size={18} />
-
-              </div>
-
-              <div className="card-main">
-
-                <h3>
-
-                  {selectedCity?.population
-                    ? `${(
-                        selectedCity.population /
-                        1000000
-                      ).toFixed(1)}M`
-                    : "N/A"}
-
-                </h3>
-
-                <div className="weather-info">
-
-                  <span>
-                    Residents
-                  </span>
-
-                  <small>
-                    City population
-                  </small>
-
-                </div>
-
-              </div>
-
-              <div className="card-footer">
-
-                {selectedCity?.name ||
-                  "Select a city"}
-
-              </div>
-
-            </div>
-
-            {/* ================= ALERTS ================= */}
-
-            <div className="info-card alert-card">
-
-              <div className="card-top">
-
-                <div className="card-title">
-
-                  <AlertTriangle size={19} />
-
-                  <span>
-                    Alerts
-                  </span>
-
-                </div>
-
-                <ArrowUpRight size={18} />
-
-              </div>
-
-              <div className="card-main">
-
-                <h3>
-                  {getAlertCount(currentAQI)}
-                </h3>
-
-                <div className="weather-info">
-
-                  <span>
-                    {getAlertStatus(currentAQI)}
-                  </span>
-
-                  <small>
-
-                    {currentAQI !== null &&
-                    currentAQI > 100
-                      ? "Air quality alert"
-                      : "City alerts"}
-
-                  </small>
-
-                </div>
-
-              </div>
-
-              <div className="card-footer">
-
-                <span>
-
-                  Wind ·{" "}
-
-                  {weather?.windSpeed !== null &&
-                  weather?.windSpeed !== undefined
-                    ? Number(
-                        weather.windSpeed
-                      ).toFixed(1)
-                    : "--"}{" "}
-
-                  km/h
-
-                </span>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* ================= LOWER DASHBOARD ================= */}
-
-          <div className="dashboard-grid">
-
-            {/* ================= MAP ================= */}
-
-            <div
-              className="large-card map-card"
-              id="explore"
-            >
-
-              <div className="large-card-header">
-
-                <div>
-
-                  <span className="section-label">
-                    LOCATION
-                  </span>
-
-                  <h3>
-                    City Map
-                  </h3>
-
-                </div>
-
+              <div className="card-actions">
                 <button
-                  className="small-btn"
+                  className={`favorite-btn ${
+                    isSelectedFavorite
+                      ? "favorite-active"
+                      : ""
+                  }`}
                   onClick={() =>
-                    scrollToSection("explore")
+                    toggleFavorite(selectedCity)
+                  }
+                  disabled={!selectedCity}
+                  title={
+                    isSelectedFavorite
+                      ? "Remove from favorites"
+                      : "Add to favorites"
                   }
                 >
-
-                  Explore
-
-                  <ArrowUpRight size={15} />
-
+                  <Heart
+                    size={17}
+                    fill={
+                      isSelectedFavorite
+                        ? "currentColor"
+                        : "none"
+                    }
+                  />
                 </button>
 
+                <button
+                  className="refresh-btn"
+                  onClick={refreshWeather}
+                  disabled={
+                    loadingWeather ||
+                    !selectedCity
+                  }
+                  title="Refresh weather"
+                >
+                  <RefreshCw
+                    size={17}
+                    className={
+                      loadingWeather
+                        ? "spin"
+                        : ""
+                    }
+                  />
+                </button>
               </div>
-
-              <div className="map-placeholder">
-
-                <div className="map-grid"></div>
-
-                <div className="map-pin">
-
-                  <MapPin size={28} />
-
-                </div>
-
-                <div className="map-location">
-
-                  <strong>
-
-                    {selectedCity?.name ||
-                      "Select a city"}
-
-                  </strong>
-
-                  <span>
-
-                    {selectedCity?.state ||
-                      "Current city"}
-
-                  </span>
-
-                </div>
-
-                {/* ================= COORDINATES ================= */}
-
-                <div className="map-coordinates">
-
-                  <span>
-
-                    Lat:{" "}
-
-                    {selectedCity?.latitude ??
-                      "--"}
-
-                  </span>
-
-                  <span>
-
-                    Long:{" "}
-
-                    {selectedCity?.longitude ??
-                      "--"}
-
-                  </span>
-
-                </div>
-
-              </div>
-
             </div>
 
-            {/* ================= AQI SUMMARY ================= */}
-
-            <div className="large-card">
-
-              <div className="large-card-header">
-
-                <div>
-
-                  <span className="section-label">
-                    AIR QUALITY
-                  </span>
-
-                  <h3>
-                    Today's AQI
-                  </h3>
-
+            {loadingWeather ? (
+              <div className="card-loading">
+                Loading weather...
+              </div>
+            ) : weather ? (
+              <div className="weather-main">
+                <div className="temperature">
+                  {currentTemperature !== null
+                    ? `${Math.round(
+                        currentTemperature
+                      )}°`
+                    : "--"}
                 </div>
 
-                <Wind size={21} />
+                <div className="weather-condition">
+                  <CloudSun size={32} />
 
+                  <div>
+                    <strong>
+                      {currentCondition ||
+                        "Unknown"}
+                    </strong>
+
+                    <span>
+                      Feels like{" "}
+                      {weather.feelsLike !==
+                      undefined
+                        ? `${Math.round(
+                            weather.feelsLike
+                          )}°C`
+                        : "--"}
+                    </span>
+                  </div>
+                </div>
               </div>
-
-              <div className="aqi-score">
-
-                <strong>
-                  {currentAQI ?? "--"}
-                </strong>
-
-                <span>
-
-                  {currentAQI !== null
-                    ? getAQIStatus(currentAQI)
-                    : "Loading..."}
-
-                </span>
-
+            ) : (
+              <div className="card-loading">
+                Weather data unavailable
               </div>
+            )}
 
-              {/* ================= AQI BAR ================= */}
-
-              <div className="aqi-bar">
-
-                <div
-                  className="aqi-progress"
-                  style={{
-                    width: `${
-                      currentAQI !== null
-                        ? Math.min(
-                            (currentAQI / 300) * 100,
-                            100
-                          )
-                        : 0
-                    }%`,
-                  }}
-                ></div>
-
-              </div>
-
-              <div className="aqi-scale">
-
-                <span>
-                  Good
-                </span>
-
-                <span>
-                  Moderate
-                </span>
-
-                <span>
-                  Unhealthy
-                </span>
-
-              </div>
-
-              {/* ================= AQI DESCRIPTION ================= */}
-
-              <p className="aqi-description">
-
-                {getAQIDescription(currentAQI)}
-
-              </p>
-
-              {/* ================= AQI DETAILS ================= */}
-
-              <div className="aqi-details">
+            <div className="weather-details">
+              <div className="weather-detail">
+                <Wind size={18} />
 
                 <div>
+                  <span>Wind</span>
 
+                  <strong>
+                    {currentWind !== null
+                      ? `${Math.round(
+                          currentWind
+                        )} km/h`
+                      : "--"}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="weather-detail">
+                <CloudSun size={18} />
+
+                <div>
+                  <span>Humidity</span>
+
+                  <strong>
+                    {weather?.humidity !==
+                    undefined
+                      ? `${weather.humidity}%`
+                      : "--"}
+                  </strong>
+                </div>
+              </div>
+
+              <div className="weather-detail">
+                <span className="detail-symbol">
+                  P
+                </span>
+
+                <div>
+                  <span>Pressure</span>
+
+                  <strong>
+                    {weather?.pressure !==
+                    undefined
+                      ? `${weather.pressure} hPa`
+                      : "--"}
+                  </strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* AQI CARD */}
+
+          <div className="large-card aqi-card">
+            <div className="large-card-header">
+              <div>
+                <span className="section-label">
+                  AIR QUALITY
+                </span>
+
+                <h3>US AQI</h3>
+              </div>
+
+              <div className="aqi-status">
+                {getAQIStatus(currentAQI)}
+              </div>
+            </div>
+
+            {loadingWeather ? (
+              <div className="card-loading">
+                Loading AQI...
+              </div>
+            ) : (
+              <>
+                <div className="aqi-value">
+                  {currentAQI !== null
+                    ? Math.round(currentAQI)
+                    : "--"}
+                </div>
+
+                <p className="aqi-description">
+                  {getAQIDescription(currentAQI)}
+                </p>
+
+                <div className="aqi-bar">
+                  <div
+                    className="aqi-bar-fill"
+                    style={{
+                      width: `${Math.min(
+                        currentAQI || 0,
+                        100
+                      )}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="aqi-meta">
                   <span>
                     PM2.5
                   </span>
 
                   <strong>
-
-                    {weather?.pm2_5 !== undefined
-                      ? `${Number(
-                          weather.pm2_5
-                        ).toFixed(1)} μg/m³`
+                    {currentPM25 !== null
+                      ? `${currentPM25.toFixed(
+                          1
+                        )} µg/m³`
                       : "--"}
-
                   </strong>
-
                 </div>
-
-                <div>
-
-                  <span>
-                    Wind
-                  </span>
-
-                  <strong>
-
-                    {weather?.windSpeed !== null &&
-                    weather?.windSpeed !== undefined
-                      ? Number(
-                          weather.windSpeed
-                        ).toFixed(1)
-                      : "--"}{" "}
-
-                    km/h
-
-                  </strong>
-
-                </div>
-
-              </div>
-
-            </div>
-
+              </>
+            )}
           </div>
 
-          {/* ================= 5 DAY FORECAST ================= */}
+          {/* POPULATION CARD */}
 
-          <div className="large-card forecast-card">
-
-            <div className="large-card-header">
-
-              <div>
-
-                <span className="section-label">
-                  FORECAST
-                </span>
-
-                <h3>
-                  5-Day Weather Forecast
-                </h3>
-
-              </div>
-
-              <CloudSun size={21} />
-
+          <div className="small-card">
+            <div className="small-card-icon">
+              <Users size={20} />
             </div>
 
-            {loadingWeather ? (
+            <span>POPULATION</span>
 
-              <div className="forecast-loading">
-                Loading forecast...
+            <h3>
+              {selectedCity?.population
+                ? Number(
+                    selectedCity.population
+                  ).toLocaleString()
+                : "N/A"}
+            </h3>
+
+            <p>
+              {selectedCity?.state ||
+                "City population"}
+            </p>
+          </div>
+
+          {/* ALERT CARD */}
+
+          <div className="small-card">
+            <div className="small-card-icon">
+              <Bell size={20} />
+            </div>
+
+            <span>CITY ALERTS</span>
+
+            <h3>{alertCount}</h3>
+
+            <p>
+              Status:{" "}
+              <strong>
+                {alertStatus}
+              </strong>
+            </p>
+          </div>
+        </section>
+
+        {/* ================= CITY LOCATION ================= */}
+
+        <section className="large-card map-card">
+          <div className="large-card-header">
+            <div>
+              <span className="section-label">
+                CITY LOCATION
+              </span>
+
+              <h3>
+                {selectedCity?.name ||
+                  "City Map"}
+              </h3>
+            </div>
+
+            <MapPin size={21} />
+          </div>
+
+          <div className="map-placeholder">
+            <MapPin size={42} />
+
+            <h4>
+              {selectedCity?.name ||
+                "Select a city"}
+            </h4>
+
+            <p>
+              {selectedCity?.location ||
+                "City location information"}
+            </p>
+          </div>
+        </section>
+
+        {/* ================= AQI SUMMARY ================= */}
+
+        <section className="large-card">
+          <div className="large-card-header">
+            <div>
+              <span className="section-label">
+                AIR QUALITY SUMMARY
+              </span>
+
+              <h3>
+                How is the air today?
+              </h3>
+            </div>
+          </div>
+
+          <div className="aqi-summary">
+            <div className="aqi-summary-score">
+              <span>AQI</span>
+
+              <strong>
+                {currentAQI !== null
+                  ? Math.round(currentAQI)
+                  : "--"}
+              </strong>
+            </div>
+
+            <div className="aqi-summary-info">
+              <h4>
+                {getAQIStatus(currentAQI)}
+              </h4>
+
+              <p>
+                {getAQIDescription(currentAQI)}
+              </p>
+
+              <div className="aqi-scale">
+                <span>Good</span>
+                <span>Moderate</span>
+                <span>Unhealthy</span>
+                <span>Hazardous</span>
               </div>
+            </div>
+          </div>
+        </section>
 
-            ) : weather?.forecast?.length > 0 ? (
+        {/* ================= 5 DAY FORECAST ================= */}
 
-              <div className="forecast-list">
+        <section className="large-card forecast-card">
+          <div className="large-card-header">
+            <div>
+              <span className="section-label">
+                WEATHER FORECAST
+              </span>
 
-                {weather.forecast.map(
-                  (day, index) => (
+              <h3>5-Day Forecast</h3>
+            </div>
 
-                    <div
-                      className="forecast-item"
-                      key={day.date}
-                    >
+            <CloudSun size={21} />
+          </div>
 
-                      <div className="forecast-day">
+          {loadingWeather ? (
+            <div className="card-loading">
+              Loading forecast...
+            </div>
+          ) : weather?.forecast?.length > 0 ? (
+            <div className="forecast-grid">
+              {weather.forecast
+                .slice(0, 5)
+                .map((day, index) => (
+                  <div
+                    className="forecast-item"
+                    key={
+                      day.date || index
+                    }
+                  >
+                    <span className="forecast-day">
+                      {getForecastDay(day.date)}
+                    </span>
 
-                        {index === 0
-                          ? "Today"
-                          : getForecastDay(
-                              day.date
-                            )}
+                    {day.icon ? (
+                      <img
+                        src={
+                          "https://openweathermap.org/img/wn/" +
+                          day.icon +
+                          "@2x.png"
+                        }
+                        alt={
+                          day.description ||
+                          "Weather"
+                        }
+                      />
+                    ) : (
+                      <CloudSun size={34} />
+                    )}
 
-                      </div>
+                    <strong>
+                      {day.temperature !==
+                      undefined
+                        ? `${Math.round(
+                            day.temperature
+                          )}°C`
+                        : day.temp !==
+                          undefined
+                        ? `${Math.round(
+                            day.temp
+                          )}°C`
+                        : "--"}
+                    </strong>
 
-                      <div className="forecast-icon">
+                    <span>
+                      {day.description ||
+                        day.condition ||
+                        "Weather"}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div className="card-loading">
+              Forecast data unavailable
+            </div>
+          )}
+        </section>
 
-                        <img
-                          src={`https://openweathermap.org/img/wn/${day.icon}@2x.png`}
-                          alt={day.description}
+        {/* ================= SMART CITY ALERTS ================= */}
+
+        <section className="large-card alerts-card">
+          <div className="large-card-header">
+            <div>
+              <span className="section-label">
+                CITY ALERTS
+              </span>
+
+              <h3>Smart City Alerts</h3>
+            </div>
+
+            <Bell size={21} />
+          </div>
+
+          {loadingWeather ? (
+            <div className="alerts-loading">
+              Checking city alerts...
+            </div>
+          ) : weather?.alerts?.length > 0 ? (
+            <div className="alerts-list">
+              {weather.alerts.map(
+                (alert, index) => (
+                  <div
+                    className={`alert-item ${alert.type}`}
+                    key={index}
+                  >
+                    <div className="alert-icon">
+                      {alert.type ===
+                      "danger" ? (
+                        <AlertTriangle
+                          size={20}
                         />
-
-                      </div>
-
-                      <div className="forecast-temp">
-
-                        {day.temperature}°
-
-                      </div>
-
-                      <div className="forecast-condition">
-
-                        {day.condition}
-
-                      </div>
-
+                      ) : alert.type ===
+                        "warning" ? (
+                        <Bell size={20} />
+                      ) : (
+                        <span>✓</span>
+                      )}
                     </div>
 
-                  )
-                )}
+                    <div className="alert-content">
+                      <h4>
+                        {alert.title}
+                      </h4>
 
-              </div>
-
-            ) : (
-
-              <div className="forecast-loading">
-
-                Forecast data unavailable
-
-              </div>
-
-            )}
-
-          </div>
-
-          {/* ================= SMART CITY ALERTS ================= */}
-
-          <div className="large-card alerts-card">
-
-            <div className="large-card-header">
-
-              <div>
-
-                <span className="section-label">
-                  CITY ALERTS
-                </span>
-
-                <h3>
-                  Smart City Alerts
-                </h3>
-
-              </div>
-
-              <Bell size={21} />
-
+                      <p>
+                        {alert.message}
+                      </p>
+                    </div>
+                  </div>
+                )
+              )}
             </div>
-
-            {loadingWeather ? (
-
-              <div className="alerts-loading">
-
-                Checking city alerts...
-
+          ) : (
+            <div className="alert-item safe">
+              <div className="alert-icon">
+                <span>✓</span>
               </div>
 
-            ) : weather?.alerts?.length > 0 ? (
+              <div className="alert-content">
+                <h4>
+                  No Active Alerts
+                </h4>
 
-              <div className="alerts-list">
-
-                {weather.alerts.map(
-                  (alert, index) => (
-
-                    <div
-                      className={`alert-item ${alert.type}`}
-                      key={index}
-                    >
-
-                      <div className="alert-icon">
-
-                        {alert.type === "danger" ? (
-
-                          <AlertTriangle size={20} />
-
-                        ) : alert.type === "warning" ? (
-
-                          <Bell size={20} />
-
-                        ) : (
-
-                          <span>
-                            ✓
-                          </span>
-
-                        )}
-
-                      </div>
-
-                      <div className="alert-content">
-
-                        <h4>
-                          {alert.title}
-                        </h4>
-
-                        <p>
-                          {alert.message}
-                        </p>
-
-                      </div>
-
-                    </div>
-
-                  )
-                )}
-
+                <p>
+                  Weather and air quality
+                  conditions are currently
+                  within normal levels.
+                </p>
               </div>
+            </div>
+          )}
+        </section>
 
-            ) : (
+        {/* ================= LAST UPDATED ================= */}
 
-              <div className="alerts-loading">
-
-                No alert data available
-
-              </div>
-
-            )}
-
-          </div>
-
-          {/* ================= LAST UPDATED ================= */}
-
-          <div className="last-updated">
-
+        <div className="last-updated">
+          <span>
+            Last updated:{" "}
             {lastUpdated
-
-              ? `Last updated: ${lastUpdated.toLocaleTimeString(
-                  [],
+              ? lastUpdated.toLocaleTimeString(
+                  "en-IN",
                   {
                     hour: "2-digit",
                     minute: "2-digit",
                   }
-                )}`
+                )
+              : "Not available"}
+          </span>
 
-              : "Waiting for live data..."}
+          <button
+            onClick={refreshWeather}
+            disabled={loadingWeather}
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </button>
+        </div>
+      </main>
+    );
+  };
 
-          </div>
+  // ================= EXPLORE PAGE =================
 
+  const renderExplore = () => {
+    return (
+      <main className="main-content">
+        <section className="page-header">
+          <span className="section-label">
+            CITY DIRECTORY
+          </span>
+
+          <h1>Explore Cities</h1>
+
+          <p>
+            Browse available cities and check
+            their real-time environmental data.
+          </p>
         </section>
 
-        {/* ================= ABOUT ================= */}
+        <section className="explore-search">
+          <Search size={20} />
 
-        <section
-          className="about-section"
-          id="about"
-        >
+          <input
+            type="text"
+            placeholder="Search cities..."
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+          />
 
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+            >
+              <X size={18} />
+            </button>
+          )}
+        </section>
+
+        {/* FAVORITES */}
+
+        {favorites.length > 0 && (
+          <section className="content-section">
+            <div className="section-heading">
+              <div>
+                <span className="section-label">
+                  SAVED CITIES
+                </span>
+
+                <h2>Favorites</h2>
+              </div>
+
+              <Heart size={20} />
+            </div>
+
+            <div className="city-grid">
+              {favorites.map((city) => (
+                <div
+                  className="city-card favorite-city-card"
+                  key={city._id}
+                >
+                  <div className="city-card-top">
+                    <div className="city-card-icon">
+                      <MapPin size={20} />
+                    </div>
+
+                    <button
+                      className="favorite-btn favorite-active"
+                      onClick={() =>
+                        toggleFavorite(city)
+                      }
+                    >
+                      <Heart
+                        size={17}
+                        fill="currentColor"
+                      />
+                    </button>
+                  </div>
+
+                  <h3>{city.name}</h3>
+
+                  <p>
+                    {city.state ||
+                      "India"}
+                  </p>
+
+                  <button
+                    className="city-card-button"
+                    onClick={() =>
+                      selectCity(city)
+                    }
+                  >
+                    View Dashboard
+                    <ArrowUpRight
+                      size={16}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ALL CITIES */}
+
+        <section className="content-section">
+          <div className="section-heading">
+            <div>
+              <span className="section-label">
+                ALL CITIES
+              </span>
+
+              <h2>
+                {filteredCities.length}{" "}
+                Cities Available
+              </h2>
+            </div>
+          </div>
+
+          {loadingCities ? (
+            <div className="loading-text">
+              Loading cities...
+            </div>
+          ) : filteredCities.length > 0 ? (
+            <div className="city-grid">
+              {filteredCities.map((city) => {
+                const isFavorite =
+                  favorites.some(
+                    (favorite) =>
+                      favorite._id ===
+                      city._id
+                  );
+
+                return (
+                  <div
+                    className="city-card"
+                    key={city._id}
+                  >
+                    <div className="city-card-top">
+                      <div className="city-card-icon">
+                        <MapPin size={20} />
+                      </div>
+
+                      <button
+                        className={`favorite-btn ${
+                          isFavorite
+                            ? "favorite-active"
+                            : ""
+                        }`}
+                        onClick={() =>
+                          toggleFavorite(
+                            city
+                          )
+                        }
+                      >
+                        <Heart
+                          size={17}
+                          fill={
+                            isFavorite
+                              ? "currentColor"
+                              : "none"
+                          }
+                        />
+                      </button>
+                    </div>
+
+                    <h3>{city.name}</h3>
+
+                    <p>
+                      {city.state ||
+                        city.country ||
+                        "India"}
+                    </p>
+
+                    {city.population && (
+                      <div className="city-population">
+                        <Users size={15} />
+
+                        <span>
+                          {Number(
+                            city.population
+                          ).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+
+                    <button
+                      className="city-card-button"
+                      onClick={() =>
+                        selectCity(city)
+                      }
+                    >
+                      View Dashboard
+                      <ArrowUpRight
+                        size={16}
+                      />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="no-results-box">
+              <Search size={28} />
+
+              <h3>
+                No cities found
+              </h3>
+
+              <p>
+                Try searching for another
+                city.
+              </p>
+            </div>
+          )}
+        </section>
+      </main>
+    );
+  };
+
+  // ================= ABOUT PAGE =================
+
+  const renderAbout = () => {
+    return (
+      <main className="main-content">
+        <section className="page-header about-header">
           <span className="section-label">
             ABOUT CITYPULSE
           </span>
 
-          <h2>
-
-            One place to understand
-
-            <span>
-              {" "}your city.
-            </span>
-
-          </h2>
+          <h1>
+            Understand Your City.
+          </h1>
 
           <p>
-
-            CityPulse brings important city
-            information together into one simple
-            and intelligent dashboard.
-
+            CityPulse is a smart city monitoring
+            dashboard designed to make weather
+            and air quality information simple
+            and accessible.
           </p>
-
         </section>
 
-      </main>
+        {/* FEATURES */}
 
+        <section className="about-grid">
+          <div className="about-card">
+            <div className="about-card-icon">
+              <Wind size={24} />
+            </div>
+
+            <h3>
+              Real-Time Weather
+            </h3>
+
+            <p>
+              Get current temperature,
+              humidity, wind speed and other
+              weather information for your
+              selected city.
+            </p>
+          </div>
+
+          <div className="about-card">
+            <div className="about-card-icon">
+              <CloudSun size={24} />
+            </div>
+
+            <h3>
+              Air Quality
+            </h3>
+
+            <p>
+              Monitor US AQI and PM2.5 levels
+              to better understand the air
+              quality around you.
+            </p>
+          </div>
+
+          <div className="about-card">
+            <div className="about-card-icon">
+              <Bell size={24} />
+            </div>
+
+            <h3>
+              Smart Alerts
+            </h3>
+
+            <p>
+              Receive simple alerts when
+              temperature, wind or air quality
+              reaches concerning levels.
+            </p>
+          </div>
+
+          <div className="about-card">
+            <div className="about-card-icon">
+              <Heart size={24} />
+            </div>
+
+            <h3>
+              Favorite Cities
+            </h3>
+
+            <p>
+              Save the cities you check most
+              often for quick access from the
+              Explore page.
+            </p>
+          </div>
+        </section>
+
+        {/* TECHNOLOGY */}
+
+        <section className="large-card about-tech-card">
+          <div className="large-card-header">
+            <div>
+              <span className="section-label">
+                TECHNOLOGY
+              </span>
+
+              <h3>
+                Built With Modern Web
+                Technologies
+              </h3>
+            </div>
+          </div>
+
+          <div className="tech-list">
+            <div className="tech-item">
+              <strong>
+                React + Vite
+              </strong>
+
+              <span>
+                Frontend interface
+              </span>
+            </div>
+
+            <div className="tech-item">
+              <strong>
+                Node.js + Express
+              </strong>
+
+              <span>
+                Backend API
+              </span>
+            </div>
+
+            <div className="tech-item">
+              <strong>
+                MongoDB
+              </strong>
+
+              <span>
+                City data storage
+              </span>
+            </div>
+
+            <div className="tech-item">
+              <strong>
+                OpenWeather
+              </strong>
+
+              <span>
+                Weather and forecast data
+              </span>
+            </div>
+
+            <div className="tech-item">
+              <strong>
+                Open-Meteo
+              </strong>
+
+              <span>
+                Air quality data
+              </span>
+            </div>
+
+            <div className="tech-item">
+              <strong>
+                Lucide React
+              </strong>
+
+              <span>
+                Interface icons
+              </span>
+            </div>
+          </div>
+        </section>
+
+        {/* DEVELOPER */}
+
+        <section className="large-card developer-card">
+          <div className="large-card-header">
+            <div>
+              <span className="section-label">
+                DEVELOPER
+              </span>
+
+              <h3>
+                Built as a Full-Stack Project
+              </h3>
+            </div>
+          </div>
+
+          <p>
+            CityPulse was created as a practical
+            full-stack web application combining
+            frontend development, backend APIs,
+            database integration and external
+            APIs.
+          </p>
+
+          <div className="developer-links">
+            <a
+              href="https://github.com/Suraj-Mahato9955"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHub
+              <ArrowUpRight size={16} />
+            </a>
+
+            <a
+              href="https://www.linkedin.com/in/suraj-mahato9603"
+              target="_blank"
+              rel="noreferrer"
+            >
+              LinkedIn
+              <ArrowUpRight size={16} />
+            </a>
+          </div>
+        </section>
+      </main>
+    );
+  };
+
+  // ================= MAIN RETURN =================
+
+  return (
+    <div className="app">
+      {/* ================= NAVBAR ================= */}
+
+      <header className="navbar">
+        <div
+          className="logo"
+          onClick={() =>
+            setCurrentPage("dashboard")
+          }
+        >
+          <div className="logo-icon">
+            <Wind size={19} />
+          </div>
+
+          <span>
+            City<span>Pulse</span>
+          </span>
+        </div>
+
+        <nav className="nav-links">
+          <button
+            className={
+              currentPage === "dashboard"
+                ? "nav-active"
+                : ""
+            }
+            onClick={() =>
+              setCurrentPage("dashboard")
+            }
+          >
+            Dashboard
+          </button>
+
+          <button
+            className={
+              currentPage === "explore"
+                ? "nav-active"
+                : ""
+            }
+            onClick={() =>
+              setCurrentPage("explore")
+            }
+          >
+            Explore Cities
+          </button>
+
+          <button
+            className={
+              currentPage === "about"
+                ? "nav-active"
+                : ""
+            }
+            onClick={() =>
+              setCurrentPage("about")
+            }
+          >
+            About
+          </button>
+        </nav>
+
+        <div className="navbar-actions">
+          <button
+            className="nav-icon-button"
+            onClick={() =>
+              setCurrentPage("explore")
+            }
+            title="Favorites"
+          >
+            <Heart
+              size={18}
+              fill={
+                favorites.length > 0
+                  ? "currentColor"
+                  : "none"
+              }
+            />
+          </button>
+
+          <button
+            className="nav-menu-button"
+            title="Menu"
+          >
+            <Menu size={20} />
+          </button>
+        </div>
+      </header>
+
+      {/* ================= PAGE ================= */}
+
+      {currentPage === "dashboard" &&
+        renderDashboard()}
+
+      {currentPage === "explore" &&
+        renderExplore()}
+
+      {currentPage === "about" &&
+        renderAbout()}
+
+      {/* ================= FOOTER ================= */}
+
+      <footer className="footer">
+        <div>
+          <strong>
+            CityPulse
+          </strong>
+
+          <span>
+            Smart city monitoring made simple.
+          </span>
+        </div>
+
+        <span>
+          © {new Date().getFullYear()} CityPulse
+        </span>
+      </footer>
     </div>
   );
 }
