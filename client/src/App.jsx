@@ -161,6 +161,8 @@ function App() {
 
   const [lastUpdated, setLastUpdated] = useState(null);
 
+  const [currentPage, setCurrentPage] = useState("dashboard");
+
   // ================= LOAD FAVORITES =================
 
   useEffect(() => {
@@ -365,68 +367,44 @@ function App() {
 
       <nav className="navbar">
 
-        <div className="logo">
+  <div
+    className="logo"
+    onClick={() => setCurrentPage("dashboard")}
+  >
+    <span className="logo-icon">🌆</span>
+    <span>CityPulse</span>
+  </div>
 
-          <div className="logo-icon">
-            CP
-          </div>
+  <div className="nav-links">
 
-          <span>
-            CityPulse
-          </span>
+    <button
+      className={currentPage === "dashboard" ? "nav-active" : ""}
+      onClick={() => setCurrentPage("dashboard")}
+    >
+      Dashboard
+    </button>
 
-        </div>
+    <button
+      className={currentPage === "explore" ? "nav-active" : ""}
+      onClick={() => setCurrentPage("explore")}
+    >
+      Explore Cities
+    </button>
 
-        <div className="nav-links">
+    <button
+      className={currentPage === "about" ? "nav-active" : ""}
+      onClick={() => setCurrentPage("about")}
+    >
+      About
+    </button>
 
-          <a
-            href="#dashboard"
-            onClick={() =>
-              scrollToSection("dashboard")
-            }
-          >
-            Dashboard
-          </a>
+  </div>
 
-          <a
-            href="#explore"
-            onClick={() =>
-              scrollToSection("explore")
-            }
-          >
-            Explore
-          </a>
+  <button className="menu-btn">
+    <Menu size={22} />
+  </button>
 
-          <a
-            href="#about"
-            onClick={() =>
-              scrollToSection("about")
-            }
-          >
-            About
-          </a>
-
-        </div>
-
-        <div className="nav-actions">
-
-          <button
-            className="icon-btn"
-            title="Notifications"
-          >
-            <Bell size={19} />
-          </button>
-
-          <button
-            className="menu-btn"
-            title="Menu"
-          >
-            <Menu size={21} />
-          </button>
-
-        </div>
-
-      </nav>
+</nav>
 
       {/* ================= HERO ================= */}
 
