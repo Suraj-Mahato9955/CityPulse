@@ -15,9 +15,37 @@ import {
   Heart,
 } from "lucide-react";
 
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+} from "react-leaflet";
+
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import "./App.css";
 
-// ================= WEATHER DESCRIPTION =================
+// =====================================================
+// LEAFLET MARKER FIX
+// =====================================================
+
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+// =====================================================
+// WEATHER DESCRIPTION
+// =====================================================
 
 const getWeatherDescription = (code) => {
   if (code === 0) return "Clear Sky";
@@ -32,7 +60,9 @@ const getWeatherDescription = (code) => {
   return "Unknown";
 };
 
-// ================= FORECAST DAY =================
+// =====================================================
+// FORECAST DAY
+// =====================================================
 
 const getForecastDay = (date) => {
   if (!date) return "--";
@@ -55,7 +85,9 @@ const getForecastDay = (date) => {
   });
 };
 
-// ================= AQI STATUS =================
+// =====================================================
+// AQI STATUS
+// =====================================================
 
 const getAQIStatus = (aqi) => {
   if (aqi === null || aqi === undefined) return "Unknown";
@@ -69,7 +101,9 @@ const getAQIStatus = (aqi) => {
   return "Hazardous";
 };
 
-// ================= AQI DESCRIPTION =================
+// =====================================================
+// AQI DESCRIPTION
+// =====================================================
 
 const getAQIDescription = (aqi) => {
   if (aqi === null || aqi === undefined) {
@@ -85,7 +119,9 @@ const getAQIDescription = (aqi) => {
   return "Health emergency conditions";
 };
 
-// ================= ALERT STATUS =================
+// =====================================================
+// ALERT STATUS
+// =====================================================
 
 const getAlertStatus = (alerts) => {
   if (!alerts || alerts.length === 0) {
@@ -99,18 +135,152 @@ const getAlertStatus = (alerts) => {
   return "Warning";
 };
 
-// ================= ALERT COUNT =================
+// =====================================================
+// CITY COORDINATES
+// =====================================================
 
-const getAlertCount = (alerts) => {
-  if (!alerts) return 0;
+// If your MongoDB city has latitude/longitude,
+// those values will be used first.
+//
+// These are fallback coordinates for common Indian cities.
 
-  return alerts.length;
+const cityCoordinates = {
+  dhanbad: [23.7957, 86.4304],
+  ranchi: [23.3441, 85.3096],
+  jamshedpur: [22.8046, 86.2029],
+  bokaro: [23.6693, 86.1511],
+  kolkata: [22.5726, 88.3639],
+  patna: [25.5941, 85.1376],
+  delhi: [28.6139, 77.209],
+  "new delhi": [28.6139, 77.209],
+  mumbai: [19.076, 72.8777],
+  pune: [18.5204, 73.8567],
+  bangalore: [12.9716, 77.5946],
+  bengaluru: [12.9716, 77.5946],
+  hyderabad: [17.385, 78.4867],
+  chennai: [13.0827, 80.2707],
+  jaipur: [26.9124, 75.7873],
+  lucknow: [26.8467, 80.9462],
+  kanpur: [26.4499, 80.3319],
+  bhubaneswar: [20.2961, 85.8245],
+  rourkela: [22.2604, 84.8536],
+  varanasi: [25.3176, 82.9739],
+  agra: [27.1767, 78.0081],
+  amritsar: [31.634, 74.8723],
+  ludhiana: [30.901, 75.8573],
+  chandigarh: [30.7333, 76.7794],
+  gurgaon: [28.4595, 77.0266],
+  gurugram: [28.4595, 77.0266],
+  noida: [28.5355, 77.391],
+  ghaziabad: [28.6692, 77.4538],
+  surat: [21.1702, 72.8311],
+  ahmedabad: [23.0225, 72.5714],
+  nagpur: [21.1458, 79.0882],
+  indore: [22.7196, 75.8577],
+  bhopal: [23.2599, 77.4126],
+  dehradun: [30.3165, 78.0322],
+  shimla: [31.1048, 77.1734],
+  guwahati: [26.1445, 91.7362],
+  visakhapatnam: [17.6868, 83.2185],
+  vijayawada: [16.5062, 80.648],
+  kochi: [9.9312, 76.2673],
+  thiruvananthapuram: [8.5241, 76.9366],
 };
 
-// ================= APP =================
+// =====================================================
+// GET CITY COORDINATES
+// =====================================================
+
+const getCityCoordinates = (city) => {
+  if (!city) {
+    return [20.5937, 78.9629];
+  }
+
+  // Different possible database field names
+  const latitude =
+    city.latitude ??
+    city.lat ??
+    city.coordinates?.latitude ??
+    city.coordinates?.lat;
+
+  const longitude =
+    city.longitude ??
+    city.lng ??
+    city.lon ??
+    city.coordinates?.longitude ??
+    city.coordinates?.lng ??
+    city.coordinates?.lon;
+
+  if (
+    latitude !== undefined &&
+    longitude !== undefined &&
+    !Number.isNaN(Number(latitude)) &&
+    !Number.isNaN(Number(longitude))
+  ) {
+    return [Number(latitude), Number(longitude)];
+  }
+
+  const cityName = (city.name || "").toLowerCase().trim();
+
+  if (cityCoordinates[cityName]) {
+    return cityCoordinates[cityName];
+  }
+
+  // India center as final fallback
+  return [20.5937, 78.9629];
+};
+
+// =====================================================
+// MAP COMPONENT
+// =====================================================
+
+const CityMap = ({ city }) => {
+  if (!city) {
+    return (
+      <div className="map-empty">
+        <MapPin size={36} />
+        <h4>Select a city</h4>
+        <p>City location will appear here.</p>
+      </div>
+    );
+  }
+
+  const position = getCityCoordinates(city);
+
+  return (
+    <div className="city-map">
+      <MapContainer
+        key={city._id || city.name}
+        center={position}
+        zoom={12}
+        scrollWheelZoom={true}
+        className="leaflet-map"
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+
+        <Marker position={position}>
+          <Popup>
+            <strong>{city.name}</strong>
+            <br />
+            {city.state || city.country || "India"}
+          </Popup>
+        </Marker>
+      </MapContainer>
+    </div>
+  );
+};
+
+// =====================================================
+// APP
+// =====================================================
 
 function App() {
-  // ================= STATES =================
+  // ===================================================
+  // STATES
+  // ===================================================
 
   const [currentPage, setCurrentPage] = useState("dashboard");
 
@@ -132,24 +302,34 @@ function App() {
 
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  // NEW: MOBILE MENU
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] =
+    useState(false);
 
-  // ================= LOAD FAVORITES =================
+  // ===================================================
+  // LOAD FAVORITES
+  // ===================================================
 
   useEffect(() => {
     try {
       const savedFavorites =
-        JSON.parse(localStorage.getItem("citypulse-favorites")) || [];
+        JSON.parse(
+          localStorage.getItem("citypulse-favorites")
+        ) || [];
 
       setFavorites(savedFavorites);
     } catch (error) {
-      console.error("Error loading favorites:", error);
+      console.error(
+        "Error loading favorites:",
+        error
+      );
+
       setFavorites([]);
     }
   }, []);
 
-  // ================= FETCH CITIES =================
+  // ===================================================
+  // FETCH CITIES
+  // ===================================================
 
   useEffect(() => {
     const fetchCities = async () => {
@@ -188,7 +368,9 @@ function App() {
     fetchCities();
   }, []);
 
-  // ================= FETCH WEATHER =================
+  // ===================================================
+  // FETCH WEATHER
+  // ===================================================
 
   useEffect(() => {
     const fetchWeather = async () => {
@@ -205,7 +387,9 @@ function App() {
         );
 
         if (!response.ok) {
-          throw new Error("Unable to load weather data");
+          throw new Error(
+            "Unable to load weather data"
+          );
         }
 
         const data = await response.json();
@@ -229,13 +413,17 @@ function App() {
     fetchWeather();
   }, [selectedCity]);
 
-  // ================= CLOSE MOBILE MENU =================
+  // ===================================================
+  // CLOSE MOBILE MENU
+  // ===================================================
 
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [currentPage]);
 
-  // ================= SELECT CITY =================
+  // ===================================================
+  // SELECT CITY
+  // ===================================================
 
   const selectCity = (city) => {
     if (!city) return;
@@ -249,14 +437,19 @@ function App() {
     setMobileMenuOpen(false);
   };
 
-  // ================= NAVIGATION =================
+  // ===================================================
+  // NAVIGATION
+  // ===================================================
 
   const navigateTo = (page) => {
     setCurrentPage(page);
+
     setMobileMenuOpen(false);
   };
 
-  // ================= TOGGLE FAVORITE =================
+  // ===================================================
+  // TOGGLE FAVORITE
+  // ===================================================
 
   const toggleFavorite = (city) => {
     if (!city) return;
@@ -272,7 +465,10 @@ function App() {
         (favorite) => favorite._id !== city._id
       );
     } else {
-      updatedFavorites = [...favorites, city];
+      updatedFavorites = [
+        ...favorites,
+        city,
+      ];
     }
 
     setFavorites(updatedFavorites);
@@ -283,7 +479,9 @@ function App() {
     );
   };
 
-  // ================= REFRESH WEATHER =================
+  // ===================================================
+  // REFRESH WEATHER
+  // ===================================================
 
   const refreshWeather = async () => {
     if (!selectedCity?._id) return;
@@ -299,7 +497,9 @@ function App() {
       );
 
       if (!response.ok) {
-        throw new Error("Unable to refresh weather");
+        throw new Error(
+          "Unable to refresh weather"
+        );
       }
 
       const data = await response.json();
@@ -308,15 +508,22 @@ function App() {
 
       setLastUpdated(new Date());
     } catch (error) {
-      console.error("Refresh Weather Error:", error);
+      console.error(
+        "Refresh Weather Error:",
+        error
+      );
 
-      setError("Unable to refresh weather data");
+      setError(
+        "Unable to refresh weather data"
+      );
     } finally {
       setLoadingWeather(false);
     }
   };
 
-  // ================= FILTER CITIES =================
+  // ===================================================
+  // FILTER CITIES
+  // ===================================================
 
   const filteredCities = cities.filter((city) => {
     const cityName = city.name || "";
@@ -326,33 +533,48 @@ function App() {
       .includes(search.toLowerCase());
   });
 
-  // ================= CURRENT DATA =================
+  // ===================================================
+  // CURRENT DATA
+  // ===================================================
 
-  const currentAQI = weather?.us_aqi ?? null;
+  const currentAQI =
+    weather?.us_aqi ?? null;
 
-  const currentPM25 = weather?.pm2_5 ?? null;
+  const currentPM25 =
+    weather?.pm2_5 ?? null;
 
-  const currentTemperature = weather?.temperature ?? null;
+  const currentTemperature =
+    weather?.temperature ?? null;
 
-  const currentWind = weather?.windSpeed ?? null;
+  const currentWind =
+    weather?.windSpeed ?? null;
 
   const currentCondition =
     weather?.condition ||
-    getWeatherDescription(weather?.weather_code);
+    getWeatherDescription(
+      weather?.weather_code
+    );
 
-  const alerts = weather?.alerts || [];
+  const alerts =
+    weather?.alerts || [];
 
-  const alertStatus = getAlertStatus(alerts);
+  const alertStatus =
+    getAlertStatus(alerts);
 
-  const alertCount = getAlertCount(alerts);
+  const alertCount =
+    alerts.length;
 
   const isSelectedFavorite =
     selectedCity &&
     favorites.some(
-      (favorite) => favorite._id === selectedCity._id
+      (favorite) =>
+        favorite._id ===
+        selectedCity._id
     );
 
-  // ================= DASHBOARD PAGE =================
+  // ===================================================
+  // DASHBOARD
+  // ===================================================
 
   const renderDashboard = () => {
     return (
@@ -362,6 +584,7 @@ function App() {
 
         <section className="hero-section">
           <div className="hero-content">
+
             <span className="section-label">
               SMART CITY MONITORING
             </span>
@@ -369,7 +592,9 @@ function App() {
             <h1>
               Monitor Your City.
               <br />
-              <span>Understand Your Air.</span>
+              <span>
+                Understand Your Air.
+              </span>
             </h1>
 
             <p>
@@ -387,13 +612,17 @@ function App() {
                 type="text"
                 placeholder="Search for a city..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) =>
+                  setSearch(e.target.value)
+                }
               />
 
               {search && (
                 <button
                   className="search-clear"
-                  onClick={() => setSearch("")}
+                  onClick={() =>
+                    setSearch("")
+                  }
                 >
                   <X size={18} />
                 </button>
@@ -402,32 +631,41 @@ function App() {
 
             {/* SEARCH RESULTS */}
 
-            {search && filteredCities.length > 0 && (
-              <div className="search-results">
-                {filteredCities.slice(0, 5).map((city) => (
-                  <button
-                    key={city._id}
-                    className="search-result-item"
-                    onClick={() => selectCity(city)}
-                  >
-                    <MapPin size={16} />
+            {search &&
+              filteredCities.length > 0 && (
+                <div className="search-results">
+                  {filteredCities
+                    .slice(0, 5)
+                    .map((city) => (
+                      <button
+                        key={city._id}
+                        className="search-result-item"
+                        onClick={() =>
+                          selectCity(city)
+                        }
+                      >
+                        <MapPin size={16} />
 
-                    <span>
-                      {city.name}
-                      {city.state ? `, ${city.state}` : ""}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {search && filteredCities.length === 0 && (
-              <div className="search-results">
-                <div className="no-results">
-                  No cities found
+                        <span>
+                          {city.name}
+                          {city.state
+                            ? `, ${city.state}`
+                            : ""}
+                        </span>
+                      </button>
+                    ))}
                 </div>
-              </div>
-            )}
+              )}
+
+            {search &&
+              filteredCities.length === 0 && (
+                <div className="search-results">
+                  <div className="no-results">
+                    No cities found
+                  </div>
+                </div>
+              )}
+
           </div>
         </section>
 
@@ -443,18 +681,23 @@ function App() {
         {/* POPULAR CITIES */}
 
         <section className="content-section">
+
           <div className="section-heading">
             <div>
               <span className="section-label">
                 QUICK ACCESS
               </span>
 
-              <h2>Popular Cities</h2>
+              <h2>
+                Popular Cities
+              </h2>
             </div>
 
             <button
               className="text-button"
-              onClick={() => navigateTo("explore")}
+              onClick={() =>
+                navigateTo("explore")
+              }
             >
               Explore all
               <ArrowUpRight size={16} />
@@ -462,30 +705,37 @@ function App() {
           </div>
 
           <div className="city-pills">
+
             {loadingCities ? (
               <div className="loading-text">
                 Loading cities...
               </div>
             ) : cities.length > 0 ? (
-              cities.slice(0, 6).map((city) => (
-                <button
-                  key={city._id}
-                  className={`city-pill ${
-                    selectedCity?._id === city._id
-                      ? "active-city"
-                      : ""
-                  }`}
-                  onClick={() => selectCity(city)}
-                >
-                  <MapPin size={15} />
-                  {city.name}
-                </button>
-              ))
+              cities
+                .slice(0, 6)
+                .map((city) => (
+                  <button
+                    key={city._id}
+                    className={`city-pill ${
+                      selectedCity?._id ===
+                      city._id
+                        ? "active-city"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      selectCity(city)
+                    }
+                  >
+                    <MapPin size={15} />
+                    {city.name}
+                  </button>
+                ))
             ) : (
               <div className="loading-text">
                 No cities available
               </div>
             )}
+
           </div>
         </section>
 
@@ -494,19 +744,24 @@ function App() {
         {selectedCity ? (
           <section className="dashboard-grid">
 
-            {/* WEATHER CARD */}
+            {/* WEATHER */}
 
             <div className="large-card weather-card">
+
               <div className="large-card-header">
+
                 <div>
                   <span className="section-label">
                     CURRENT WEATHER
                   </span>
 
-                  <h3>{selectedCity.name}</h3>
+                  <h3>
+                    {selectedCity.name}
+                  </h3>
                 </div>
 
                 <div className="card-actions">
+
                   <button
                     className={`favorite-btn ${
                       isSelectedFavorite
@@ -514,7 +769,9 @@ function App() {
                         : ""
                     }`}
                     onClick={() =>
-                      toggleFavorite(selectedCity)
+                      toggleFavorite(
+                        selectedCity
+                      )
                     }
                     title={
                       isSelectedFavorite
@@ -534,17 +791,24 @@ function App() {
 
                   <button
                     className="refresh-btn"
-                    onClick={refreshWeather}
-                    disabled={loadingWeather}
+                    onClick={
+                      refreshWeather
+                    }
+                    disabled={
+                      loadingWeather
+                    }
                     title="Refresh weather"
                   >
                     <RefreshCw
                       size={17}
                       className={
-                        loadingWeather ? "spin" : ""
+                        loadingWeather
+                          ? "spin"
+                          : ""
                       }
                     />
                   </button>
+
                 </div>
               </div>
 
@@ -554,29 +818,36 @@ function App() {
                 </div>
               ) : weather ? (
                 <div className="weather-main">
+
                   <div className="temperature">
                     {currentTemperature !== null
-                      ? `${Math.round(currentTemperature)}°`
+                      ? `${Math.round(
+                          currentTemperature
+                        )}°`
                       : "--"}
                   </div>
 
                   <div className="weather-condition">
+
                     <CloudSun size={32} />
 
                     <div>
                       <strong>
-                        {currentCondition || "Unknown"}
+                        {currentCondition ||
+                          "Unknown"}
                       </strong>
 
                       <span>
                         Feels like{" "}
-                        {weather.feelsLike !== undefined
+                        {weather.feelsLike !==
+                        undefined
                           ? `${Math.round(
                               weather.feelsLike
                             )}°C`
                           : "--"}
                       </span>
                     </div>
+
                   </div>
                 </div>
               ) : (
@@ -586,6 +857,7 @@ function App() {
               )}
 
               <div className="weather-details">
+
                 <div className="weather-detail">
                   <Wind size={18} />
 
@@ -594,7 +866,9 @@ function App() {
 
                     <strong>
                       {currentWind !== null
-                        ? `${Math.round(currentWind)} km/h`
+                        ? `${Math.round(
+                            currentWind
+                          )} km/h`
                         : "--"}
                     </strong>
                   </div>
@@ -607,7 +881,8 @@ function App() {
                     <span>Humidity</span>
 
                     <strong>
-                      {weather?.humidity !== undefined
+                      {weather?.humidity !==
+                      undefined
                         ? `${weather.humidity}%`
                         : "--"}
                     </strong>
@@ -623,19 +898,23 @@ function App() {
                     <span>Pressure</span>
 
                     <strong>
-                      {weather?.pressure !== undefined
+                      {weather?.pressure !==
+                      undefined
                         ? `${weather.pressure} hPa`
                         : "--"}
                     </strong>
                   </div>
                 </div>
+
               </div>
             </div>
 
-            {/* AQI CARD */}
+            {/* AQI */}
 
             <div className="large-card aqi-card">
+
               <div className="large-card-header">
+
                 <div>
                   <span className="section-label">
                     AIR QUALITY
@@ -645,8 +924,11 @@ function App() {
                 </div>
 
                 <div className="aqi-status">
-                  {getAQIStatus(currentAQI)}
+                  {getAQIStatus(
+                    currentAQI
+                  )}
                 </div>
+
               </div>
 
               {loadingWeather ? (
@@ -657,12 +939,16 @@ function App() {
                 <>
                   <div className="aqi-value">
                     {currentAQI !== null
-                      ? Math.round(currentAQI)
+                      ? Math.round(
+                          currentAQI
+                        )
                       : "--"}
                   </div>
 
                   <p className="aqi-description">
-                    {getAQIDescription(currentAQI)}
+                    {getAQIDescription(
+                      currentAQI
+                    )}
                   </p>
 
                   <div className="aqi-bar">
@@ -678,11 +964,15 @@ function App() {
                   </div>
 
                   <div className="aqi-meta">
-                    <span>PM2.5</span>
+                    <span>
+                      PM2.5
+                    </span>
 
                     <strong>
                       {currentPM25 !== null
-                        ? `${currentPM25.toFixed(1)} µg/m³`
+                        ? `${currentPM25.toFixed(
+                            1
+                          )} µg/m³`
                         : "--"}
                     </strong>
                   </div>
@@ -690,9 +980,10 @@ function App() {
               )}
             </div>
 
-            {/* POPULATION CARD */}
+            {/* POPULATION */}
 
             <div className="small-card">
+
               <div className="small-card-icon">
                 <Users size={20} />
               </div>
@@ -708,26 +999,35 @@ function App() {
               </h3>
 
               <p>
-                {selectedCity.state || "City population"}
+                {selectedCity.state ||
+                  "City population"}
               </p>
+
             </div>
 
-            {/* ALERT CARD */}
+            {/* ALERT */}
 
             <div className="small-card">
+
               <div className="small-card-icon">
                 <Bell size={20} />
               </div>
 
               <span>CITY ALERTS</span>
 
-              <h3>{alertCount}</h3>
+              <h3>
+                {alertCount}
+              </h3>
 
               <p>
                 Status:{" "}
-                <strong>{alertStatus}</strong>
+                <strong>
+                  {alertStatus}
+                </strong>
               </p>
+
             </div>
+
           </section>
         ) : (
           <section className="large-card">
@@ -737,66 +1037,100 @@ function App() {
           </section>
         )}
 
-        {/* CITY LOCATION */}
+        {/* =================================================
+            REAL CITY MAP
+        ================================================= */}
 
         <section className="large-card map-card">
+
           <div className="large-card-header">
+
             <div>
               <span className="section-label">
                 CITY LOCATION
               </span>
 
               <h3>
-                {selectedCity?.name || "City Map"}
+                {selectedCity?.name ||
+                  "City Map"}
               </h3>
             </div>
 
             <MapPin size={21} />
+
           </div>
 
-          <div className="map-placeholder">
-            <MapPin size={42} />
+          <CityMap city={selectedCity} />
 
-            <h4>
-              {selectedCity?.name || "Select a city"}
-            </h4>
+          {selectedCity && (
+            <div className="map-info">
 
-            <p>
-              {selectedCity?.location ||
-                "City location information"}
-            </p>
-          </div>
+              <div>
+                <MapPin size={16} />
+
+                <span>
+                  {selectedCity.name}
+                  {selectedCity.state
+                    ? `, ${selectedCity.state}`
+                    : ""}
+                </span>
+              </div>
+
+              <span className="map-info-text">
+                Interactive city map
+              </span>
+
+            </div>
+          )}
+
         </section>
 
         {/* AQI SUMMARY */}
 
         <section className="large-card">
+
           <div className="large-card-header">
+
             <div>
               <span className="section-label">
                 AIR QUALITY SUMMARY
               </span>
 
-              <h3>How is the air today?</h3>
+              <h3>
+                How is the air today?
+              </h3>
             </div>
+
           </div>
 
           <div className="aqi-summary">
+
             <div className="aqi-summary-score">
+
               <span>AQI</span>
 
               <strong>
                 {currentAQI !== null
-                  ? Math.round(currentAQI)
+                  ? Math.round(
+                      currentAQI
+                    )
                   : "--"}
               </strong>
+
             </div>
 
             <div className="aqi-summary-info">
-              <h4>{getAQIStatus(currentAQI)}</h4>
+
+              <h4>
+                {getAQIStatus(
+                  currentAQI
+                )}
+              </h4>
 
               <p>
-                {getAQIDescription(currentAQI)}
+                {getAQIDescription(
+                  currentAQI
+                )}
               </p>
 
               <div className="aqi-scale">
@@ -805,6 +1139,7 @@ function App() {
                 <span>Unhealthy</span>
                 <span>Hazardous</span>
               </div>
+
             </div>
           </div>
         </section>
@@ -812,33 +1147,45 @@ function App() {
         {/* 5 DAY FORECAST */}
 
         <section className="large-card forecast-card">
+
           <div className="large-card-header">
+
             <div>
               <span className="section-label">
                 WEATHER FORECAST
               </span>
 
-              <h3>5-Day Forecast</h3>
+              <h3>
+                5-Day Forecast
+              </h3>
             </div>
 
             <CloudSun size={21} />
+
           </div>
 
           {loadingWeather ? (
             <div className="card-loading">
               Loading forecast...
             </div>
-          ) : weather?.forecast?.length > 0 ? (
+          ) : weather?.forecast?.length >
+            0 ? (
             <div className="forecast-grid">
+
               {weather.forecast
                 .slice(0, 5)
                 .map((day, index) => (
                   <div
                     className="forecast-item"
-                    key={day.date || index}
+                    key={
+                      day.date || index
+                    }
                   >
+
                     <span className="forecast-day">
-                      {getForecastDay(day.date)}
+                      {getForecastDay(
+                        day.date
+                      )}
                     </span>
 
                     {day.icon ? (
@@ -849,7 +1196,8 @@ function App() {
                           "@2x.png"
                         }
                         alt={
-                          day.description || "Weather"
+                          day.description ||
+                          "Weather"
                         }
                       />
                     ) : (
@@ -857,12 +1205,16 @@ function App() {
                     )}
 
                     <strong>
-                      {day.temperature !== undefined
+                      {day.temperature !==
+                      undefined
                         ? `${Math.round(
                             day.temperature
                           )}°C`
-                        : day.temp !== undefined
-                        ? `${Math.round(day.temp)}°C`
+                        : day.temp !==
+                          undefined
+                        ? `${Math.round(
+                            day.temp
+                          )}°C`
                         : "--"}
                     </strong>
 
@@ -871,83 +1223,117 @@ function App() {
                         day.condition ||
                         "Weather"}
                     </span>
+
                   </div>
                 ))}
+
             </div>
           ) : (
             <div className="card-loading">
               Forecast data unavailable
             </div>
           )}
+
         </section>
 
         {/* SMART CITY ALERTS */}
 
         <section className="large-card alerts-card">
+
           <div className="large-card-header">
+
             <div>
               <span className="section-label">
                 CITY ALERTS
               </span>
 
-              <h3>Smart City Alerts</h3>
+              <h3>
+                Smart City Alerts
+              </h3>
             </div>
 
             <Bell size={21} />
+
           </div>
 
           {loadingWeather ? (
             <div className="alerts-loading">
               Checking city alerts...
             </div>
-          ) : weather?.alerts?.length > 0 ? (
+          ) : weather?.alerts?.length >
+            0 ? (
             <div className="alerts-list">
+
               {weather.alerts.map(
                 (alert, index) => (
                   <div
                     className={`alert-item ${alert.type}`}
                     key={index}
                   >
+
                     <div className="alert-icon">
-                      {alert.type === "danger" ? (
-                        <AlertTriangle size={20} />
-                      ) : alert.type === "warning" ? (
+
+                      {alert.type ===
+                      "danger" ? (
+                        <AlertTriangle
+                          size={20}
+                        />
+                      ) : alert.type ===
+                        "warning" ? (
                         <Bell size={20} />
                       ) : (
                         <span>✓</span>
                       )}
+
                     </div>
 
                     <div className="alert-content">
-                      <h4>{alert.title}</h4>
 
-                      <p>{alert.message}</p>
+                      <h4>
+                        {alert.title}
+                      </h4>
+
+                      <p>
+                        {alert.message}
+                      </p>
+
                     </div>
+
                   </div>
                 )
               )}
+
             </div>
           ) : (
             <div className="alert-item safe">
+
               <div className="alert-icon">
                 <span>✓</span>
               </div>
 
               <div className="alert-content">
-                <h4>No Active Alerts</h4>
+
+                <h4>
+                  No Active Alerts
+                </h4>
 
                 <p>
-                  Weather and air quality conditions
-                  are currently within normal levels.
+                  Weather and air quality
+                  conditions are currently
+                  within normal levels.
                 </p>
+
               </div>
+
             </div>
           )}
+
         </section>
 
         {/* LAST UPDATED */}
 
         <div className="last-updated">
+
           <span>
             Last updated:{" "}
             {lastUpdated
@@ -968,70 +1354,94 @@ function App() {
             <RefreshCw size={14} />
             Refresh
           </button>
+
         </div>
+
       </main>
     );
   };
 
-  // ================= EXPLORE PAGE =================
+  // =====================================================
+  // EXPLORE PAGE
+  // =====================================================
 
   const renderExplore = () => {
     return (
       <main className="main-content">
 
         <section className="page-header">
+
           <span className="section-label">
             CITY DIRECTORY
           </span>
 
-          <h1>Explore Cities</h1>
+          <h1>
+            Explore Cities
+          </h1>
 
           <p>
             Browse available cities and check
             their real-time environmental data.
           </p>
+
         </section>
 
         <section className="explore-search">
+
           <Search size={20} />
 
           <input
             type="text"
             placeholder="Search cities..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
           />
 
           {search && (
-            <button onClick={() => setSearch("")}>
+            <button
+              onClick={() =>
+                setSearch("")
+              }
+            >
               <X size={18} />
             </button>
           )}
+
         </section>
 
         {/* FAVORITES */}
 
         {favorites.length > 0 && (
           <section className="content-section">
+
             <div className="section-heading">
+
               <div>
                 <span className="section-label">
                   SAVED CITIES
                 </span>
 
-                <h2>Favorites</h2>
+                <h2>
+                  Favorites
+                </h2>
               </div>
 
               <Heart size={20} />
+
             </div>
 
             <div className="city-grid">
+
               {favorites.map((city) => (
                 <div
                   className="city-card favorite-city-card"
                   key={city._id}
                 >
+
                   <div className="city-card-top">
+
                     <div className="city-card-icon">
                       <MapPin size={20} />
                     </div>
@@ -1039,7 +1449,9 @@ function App() {
                     <button
                       className="favorite-btn favorite-active"
                       onClick={() =>
-                        toggleFavorite(city)
+                        toggleFavorite(
+                          city
+                        )
                       }
                       title="Remove from favorites"
                     >
@@ -1048,21 +1460,33 @@ function App() {
                         fill="currentColor"
                       />
                     </button>
+
                   </div>
 
-                  <h3>{city.name}</h3>
+                  <h3>
+                    {city.name}
+                  </h3>
 
-                  <p>{city.state || "India"}</p>
+                  <p>
+                    {city.state ||
+                      "India"}
+                  </p>
 
                   <button
                     className="city-card-button"
-                    onClick={() => selectCity(city)}
+                    onClick={() =>
+                      selectCity(city)
+                    }
                   >
                     View Dashboard
-                    <ArrowUpRight size={16} />
+                    <ArrowUpRight
+                      size={16}
+                    />
                   </button>
+
                 </div>
               ))}
+
             </div>
           </section>
         )}
@@ -1070,125 +1494,163 @@ function App() {
         {/* ALL CITIES */}
 
         <section className="content-section">
+
           <div className="section-heading">
+
             <div>
               <span className="section-label">
                 ALL CITIES
               </span>
 
               <h2>
-                {filteredCities.length} Cities Available
+                {filteredCities.length}{" "}
+                Cities Available
               </h2>
             </div>
+
           </div>
 
           {loadingCities ? (
             <div className="loading-text">
               Loading cities...
             </div>
-          ) : filteredCities.length > 0 ? (
+          ) : filteredCities.length >
+            0 ? (
             <div className="city-grid">
-              {filteredCities.map((city) => {
-                const isFavorite = favorites.some(
-                  (favorite) =>
-                    favorite._id === city._id
-                );
 
-                return (
-                  <div
-                    className="city-card"
-                    key={city._id}
-                  >
-                    <div className="city-card-top">
-                      <div className="city-card-icon">
-                        <MapPin size={20} />
+              {filteredCities.map(
+                (city) => {
+
+                  const isFavorite =
+                    favorites.some(
+                      (favorite) =>
+                        favorite._id ===
+                        city._id
+                    );
+
+                  return (
+                    <div
+                      className="city-card"
+                      key={city._id}
+                    >
+
+                      <div className="city-card-top">
+
+                        <div className="city-card-icon">
+                          <MapPin size={20} />
+                        </div>
+
+                        <button
+                          className={`favorite-btn ${
+                            isFavorite
+                              ? "favorite-active"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            toggleFavorite(
+                              city
+                            )
+                          }
+                          title={
+                            isFavorite
+                              ? "Remove from favorites"
+                              : "Add to favorites"
+                          }
+                        >
+                          <Heart
+                            size={17}
+                            fill={
+                              isFavorite
+                                ? "currentColor"
+                                : "none"
+                            }
+                          />
+                        </button>
+
                       </div>
+
+                      <h3>
+                        {city.name}
+                      </h3>
+
+                      <p>
+                        {city.state ||
+                          city.country ||
+                          "India"}
+                      </p>
+
+                      {city.population && (
+                        <div className="city-population">
+
+                          <Users size={15} />
+
+                          <span>
+                            {Number(
+                              city.population
+                            ).toLocaleString()}
+                          </span>
+
+                        </div>
+                      )}
 
                       <button
-                        className={`favorite-btn ${
-                          isFavorite
-                            ? "favorite-active"
-                            : ""
-                        }`}
+                        className="city-card-button"
                         onClick={() =>
-                          toggleFavorite(city)
-                        }
-                        title={
-                          isFavorite
-                            ? "Remove from favorites"
-                            : "Add to favorites"
+                          selectCity(city)
                         }
                       >
-                        <Heart
-                          size={17}
-                          fill={
-                            isFavorite
-                              ? "currentColor"
-                              : "none"
-                          }
+                        View Dashboard
+                        <ArrowUpRight
+                          size={16}
                         />
                       </button>
+
                     </div>
+                  );
+                }
+              )}
 
-                    <h3>{city.name}</h3>
-
-                    <p>
-                      {city.state ||
-                        city.country ||
-                        "India"}
-                    </p>
-
-                    {city.population && (
-                      <div className="city-population">
-                        <Users size={15} />
-
-                        <span>
-                          {Number(
-                            city.population
-                          ).toLocaleString()}
-                        </span>
-                      </div>
-                    )}
-
-                    <button
-                      className="city-card-button"
-                      onClick={() => selectCity(city)}
-                    >
-                      View Dashboard
-                      <ArrowUpRight size={16} />
-                    </button>
-                  </div>
-                );
-              })}
             </div>
           ) : (
             <div className="no-results-box">
+
               <Search size={28} />
 
-              <h3>No cities found</h3>
+              <h3>
+                No cities found
+              </h3>
 
               <p>
-                Try searching for another city.
+                Try searching for another
+                city.
               </p>
+
             </div>
           )}
+
         </section>
+
       </main>
     );
   };
 
-  // ================= ABOUT PAGE =================
+  // =====================================================
+  // ABOUT PAGE
+  // =====================================================
 
   const renderAbout = () => {
     return (
       <main className="main-content">
 
         <section className="page-header about-header">
+
           <span className="section-label">
             ABOUT CITYPULSE
           </span>
 
-          <h1>Understand Your City.</h1>
+          <h1>
+            Understand Your City.
+          </h1>
 
           <p>
             CityPulse is a smart city monitoring
@@ -1196,72 +1658,89 @@ function App() {
             and air quality information simple
             and accessible.
           </p>
+
         </section>
 
-        {/* FEATURES */}
-
         <section className="about-grid">
+
           <div className="about-card">
+
             <div className="about-card-icon">
               <Wind size={24} />
             </div>
 
-            <h3>Real-Time Weather</h3>
+            <h3>
+              Real-Time Weather
+            </h3>
 
             <p>
               Get current temperature, humidity,
               wind speed and other weather
               information for your selected city.
             </p>
+
           </div>
 
           <div className="about-card">
+
             <div className="about-card-icon">
               <CloudSun size={24} />
             </div>
 
-            <h3>Air Quality</h3>
+            <h3>
+              Air Quality
+            </h3>
 
             <p>
               Monitor US AQI and PM2.5 levels
               to better understand the air
               quality around you.
             </p>
+
           </div>
 
           <div className="about-card">
+
             <div className="about-card-icon">
               <Bell size={24} />
             </div>
 
-            <h3>Smart Alerts</h3>
+            <h3>
+              Smart Alerts
+            </h3>
 
             <p>
               Receive simple alerts when
               temperature, wind or air quality
               reaches concerning levels.
             </p>
+
           </div>
 
           <div className="about-card">
+
             <div className="about-card-icon">
               <Heart size={24} />
             </div>
 
-            <h3>Favorite Cities</h3>
+            <h3>
+              Favorite Cities
+            </h3>
 
             <p>
               Save the cities you check most
               often for quick access from the
               Explore page.
             </p>
+
           </div>
+
         </section>
 
-        {/* TECHNOLOGY */}
-
         <section className="large-card about-tech-card">
+
           <div className="large-card-header">
+
             <div>
               <span className="section-label">
                 TECHNOLOGY
@@ -1271,45 +1750,81 @@ function App() {
                 Built With Modern Web Technologies
               </h3>
             </div>
+
           </div>
 
           <div className="tech-list">
+
             <div className="tech-item">
-              <strong>React + Vite</strong>
-              <span>Frontend interface</span>
+              <strong>
+                React + Vite
+              </strong>
+              <span>
+                Frontend interface
+              </span>
             </div>
 
             <div className="tech-item">
-              <strong>Node.js + Express</strong>
-              <span>Backend API</span>
+              <strong>
+                Node.js + Express
+              </strong>
+              <span>
+                Backend API
+              </span>
             </div>
 
             <div className="tech-item">
-              <strong>MongoDB</strong>
-              <span>City data storage</span>
+              <strong>
+                MongoDB
+              </strong>
+              <span>
+                City data storage
+              </span>
             </div>
 
             <div className="tech-item">
-              <strong>OpenWeather</strong>
-              <span>Weather and forecast data</span>
+              <strong>
+                OpenWeather
+              </strong>
+              <span>
+                Weather and forecast data
+              </span>
             </div>
 
             <div className="tech-item">
-              <strong>Open-Meteo</strong>
-              <span>Air quality data</span>
+              <strong>
+                Open-Meteo
+              </strong>
+              <span>
+                Air quality data
+              </span>
             </div>
 
             <div className="tech-item">
-              <strong>Lucide React</strong>
-              <span>Interface icons</span>
+              <strong>
+                Leaflet + OpenStreetMap
+              </strong>
+              <span>
+                Interactive city maps
+              </span>
             </div>
+
+            <div className="tech-item">
+              <strong>
+                Lucide React
+              </strong>
+              <span>
+                Interface icons
+              </span>
+            </div>
+
           </div>
         </section>
 
-        {/* DEVELOPER */}
-
         <section className="large-card developer-card">
+
           <div className="large-card-header">
+
             <div>
               <span className="section-label">
                 DEVELOPER
@@ -1319,17 +1834,18 @@ function App() {
                 Built as a Full-Stack Project
               </h3>
             </div>
+
           </div>
 
           <p>
             CityPulse was created as a practical
             full-stack web application combining
             frontend development, backend APIs,
-            database integration and external
-            APIs.
+            database integration and external APIs.
           </p>
 
           <div className="developer-links">
+
             <a
               href="https://github.com/Suraj-Mahato9955"
               target="_blank"
@@ -1347,13 +1863,18 @@ function App() {
               LinkedIn
               <ArrowUpRight size={16} />
             </a>
+
           </div>
+
         </section>
+
       </main>
     );
   };
 
-  // ================= MAIN RETURN =================
+  // =====================================================
+  // MAIN RETURN
+  // =====================================================
 
   return (
     <div className="app">
@@ -1364,27 +1885,35 @@ function App() {
 
         <div
           className="logo"
-          onClick={() => navigateTo("dashboard")}
+          onClick={() =>
+            navigateTo("dashboard")
+          }
         >
+
           <div className="logo-icon">
             <Wind size={19} />
           </div>
 
           <span>
-            City<span>Pulse</span>
+            City
+            <span>Pulse</span>
           </span>
+
         </div>
 
-        {/* DESKTOP NAVIGATION */}
+        {/* DESKTOP NAV */}
 
         <nav className="nav-links">
+
           <button
             className={
               currentPage === "dashboard"
                 ? "nav-active"
                 : ""
             }
-            onClick={() => navigateTo("dashboard")}
+            onClick={() =>
+              navigateTo("dashboard")
+            }
           >
             Dashboard
           </button>
@@ -1395,7 +1924,9 @@ function App() {
                 ? "nav-active"
                 : ""
             }
-            onClick={() => navigateTo("explore")}
+            onClick={() =>
+              navigateTo("explore")
+            }
           >
             Explore Cities
           </button>
@@ -1406,10 +1937,13 @@ function App() {
                 ? "nav-active"
                 : ""
             }
-            onClick={() => navigateTo("about")}
+            onClick={() =>
+              navigateTo("about")
+            }
           >
             About
           </button>
+
         </nav>
 
         <div className="navbar-actions">
@@ -1418,9 +1952,12 @@ function App() {
 
           <button
             className="nav-icon-button"
-            onClick={() => navigateTo("explore")}
+            onClick={() =>
+              navigateTo("explore")
+            }
             title="Favorites"
           >
+
             <Heart
               size={18}
               fill={
@@ -1435,6 +1972,7 @@ function App() {
                 {favorites.length}
               </span>
             )}
+
           </button>
 
           {/* MOBILE MENU */}
@@ -1442,11 +1980,15 @@ function App() {
           <button
             className="nav-menu-button"
             onClick={() =>
-              setMobileMenuOpen((prev) => !prev)
+              setMobileMenuOpen(
+                (prev) => !prev
+              )
             }
             title="Menu"
             aria-label="Toggle navigation menu"
-            aria-expanded={mobileMenuOpen}
+            aria-expanded={
+              mobileMenuOpen
+            }
           >
             {mobileMenuOpen ? (
               <X size={20} />
@@ -1454,7 +1996,9 @@ function App() {
               <Menu size={20} />
             )}
           </button>
+
         </div>
+
       </header>
 
       {/* MOBILE MENU */}
@@ -1468,7 +2012,9 @@ function App() {
                 ? "mobile-nav-active"
                 : ""
             }
-            onClick={() => navigateTo("dashboard")}
+            onClick={() =>
+              navigateTo("dashboard")
+            }
           >
             <Wind size={18} />
             Dashboard
@@ -1480,7 +2026,9 @@ function App() {
                 ? "mobile-nav-active"
                 : ""
             }
-            onClick={() => navigateTo("explore")}
+            onClick={() =>
+              navigateTo("explore")
+            }
           >
             <MapPin size={18} />
             Explore Cities
@@ -1492,27 +2040,36 @@ function App() {
                 ? "mobile-nav-active"
                 : ""
             }
-            onClick={() => navigateTo("about")}
+            onClick={() =>
+              navigateTo("about")
+            }
           >
             <Bell size={18} />
             About
           </button>
+
         </div>
       )}
 
       {/* PAGE */}
 
-      {currentPage === "dashboard" && renderDashboard()}
+      {currentPage === "dashboard" &&
+        renderDashboard()}
 
-      {currentPage === "explore" && renderExplore()}
+      {currentPage === "explore" &&
+        renderExplore()}
 
-      {currentPage === "about" && renderAbout()}
+      {currentPage === "about" &&
+        renderAbout()}
 
       {/* FOOTER */}
 
       <footer className="footer">
+
         <div>
-          <strong>CityPulse</strong>
+          <strong>
+            CityPulse
+          </strong>
 
           <span>
             Smart city monitoring made simple.
@@ -1522,7 +2079,9 @@ function App() {
         <span>
           © {new Date().getFullYear()} CityPulse
         </span>
+
       </footer>
+
     </div>
   );
 }
