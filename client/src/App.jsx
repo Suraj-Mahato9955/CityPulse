@@ -35,6 +35,8 @@ const getWeatherDescription = (code) => {
 // ================= FORECAST DAY =================
 
 const getForecastDay = (date) => {
+  if (!date) return "--";
+
   const today = new Date();
   const forecastDate = new Date(date);
 
@@ -130,14 +132,15 @@ function App() {
 
   const [lastUpdated, setLastUpdated] = useState(null);
 
+  // NEW: MOBILE MENU
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   // ================= LOAD FAVORITES =================
 
   useEffect(() => {
     try {
       const savedFavorites =
-        JSON.parse(
-          localStorage.getItem("citypulse-favorites")
-        ) || [];
+        JSON.parse(localStorage.getItem("citypulse-favorites")) || [];
 
       setFavorites(savedFavorites);
     } catch (error) {
@@ -226,6 +229,12 @@ function App() {
     fetchWeather();
   }, [selectedCity]);
 
+  // ================= CLOSE MOBILE MENU =================
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [currentPage]);
+
   // ================= SELECT CITY =================
 
   const selectCity = (city) => {
@@ -236,6 +245,15 @@ function App() {
     setSearch("");
 
     setCurrentPage("dashboard");
+
+    setMobileMenuOpen(false);
+  };
+
+  // ================= NAVIGATION =================
+
+  const navigateTo = (page) => {
+    setCurrentPage(page);
+    setMobileMenuOpen(false);
   };
 
   // ================= TOGGLE FAVORITE =================
@@ -314,8 +332,7 @@ function App() {
 
   const currentPM25 = weather?.pm2_5 ?? null;
 
-  const currentTemperature =
-    weather?.temperature ?? null;
+  const currentTemperature = weather?.temperature ?? null;
 
   const currentWind = weather?.windSpeed ?? null;
 
@@ -332,8 +349,7 @@ function App() {
   const isSelectedFavorite =
     selectedCity &&
     favorites.some(
-      (favorite) =>
-        favorite._id === selectedCity._id
+      (favorite) => favorite._id === selectedCity._id
     );
 
   // ================= DASHBOARD PAGE =================
@@ -341,7 +357,8 @@ function App() {
   const renderDashboard = () => {
     return (
       <main className="main-content">
-        {/* ================= HERO ================= */}
+
+        {/* HERO */}
 
         <section className="hero-section">
           <div className="hero-content">
@@ -370,9 +387,7 @@ function App() {
                 type="text"
                 placeholder="Search for a city..."
                 value={search}
-                onChange={(e) =>
-                  setSearch(e.target.value)
-                }
+                onChange={(e) => setSearch(e.target.value)}
               />
 
               {search && (
@@ -389,26 +404,20 @@ function App() {
 
             {search && filteredCities.length > 0 && (
               <div className="search-results">
-                {filteredCities
-                  .slice(0, 5)
-                  .map((city) => (
-                    <button
-                      key={city._id}
-                      className="search-result-item"
-                      onClick={() =>
-                        selectCity(city)
-                      }
-                    >
-                      <MapPin size={16} />
+                {filteredCities.slice(0, 5).map((city) => (
+                  <button
+                    key={city._id}
+                    className="search-result-item"
+                    onClick={() => selectCity(city)}
+                  >
+                    <MapPin size={16} />
 
-                      <span>
-                        {city.name}
-                        {city.state
-                          ? `, ${city.state}`
-                          : ""}
-                      </span>
-                    </button>
-                  ))}
+                    <span>
+                      {city.name}
+                      {city.state ? `, ${city.state}` : ""}
+                    </span>
+                  </button>
+                ))}
               </div>
             )}
 
@@ -422,7 +431,7 @@ function App() {
           </div>
         </section>
 
-        {/* ================= ERROR ================= */}
+        {/* ERROR */}
 
         {error && (
           <div className="error-message">
@@ -431,7 +440,7 @@ function App() {
           </div>
         )}
 
-        {/* ================= POPULAR CITIES ================= */}
+        {/* POPULAR CITIES */}
 
         <section className="content-section">
           <div className="section-heading">
@@ -445,9 +454,7 @@ function App() {
 
             <button
               className="text-button"
-              onClick={() =>
-                setCurrentPage("explore")
-              }
+              onClick={() => navigateTo("explore")}
             >
               Explore all
               <ArrowUpRight size={16} />
@@ -459,293 +466,278 @@ function App() {
               <div className="loading-text">
                 Loading cities...
               </div>
+            ) : cities.length > 0 ? (
+              cities.slice(0, 6).map((city) => (
+                <button
+                  key={city._id}
+                  className={`city-pill ${
+                    selectedCity?._id === city._id
+                      ? "active-city"
+                      : ""
+                  }`}
+                  onClick={() => selectCity(city)}
+                >
+                  <MapPin size={15} />
+                  {city.name}
+                </button>
+              ))
             ) : (
-              cities
-                .slice(0, 6)
-                .map((city) => (
+              <div className="loading-text">
+                No cities available
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* CURRENT CITY */}
+
+        {selectedCity ? (
+          <section className="dashboard-grid">
+
+            {/* WEATHER CARD */}
+
+            <div className="large-card weather-card">
+              <div className="large-card-header">
+                <div>
+                  <span className="section-label">
+                    CURRENT WEATHER
+                  </span>
+
+                  <h3>{selectedCity.name}</h3>
+                </div>
+
+                <div className="card-actions">
                   <button
-                    key={city._id}
-                    className={`city-pill ${
-                      selectedCity?._id === city._id
-                        ? "active-city"
+                    className={`favorite-btn ${
+                      isSelectedFavorite
+                        ? "favorite-active"
                         : ""
                     }`}
                     onClick={() =>
-                      selectCity(city)
+                      toggleFavorite(selectedCity)
+                    }
+                    title={
+                      isSelectedFavorite
+                        ? "Remove from favorites"
+                        : "Add to favorites"
                     }
                   >
-                    <MapPin size={15} />
-                    {city.name}
+                    <Heart
+                      size={17}
+                      fill={
+                        isSelectedFavorite
+                          ? "currentColor"
+                          : "none"
+                      }
+                    />
                   </button>
-                ))
-            )}
-          </div>
-        </section>
 
-        {/* ================= CURRENT CITY ================= */}
-
-        <section className="dashboard-grid">
-          {/* WEATHER CARD */}
-
-          <div className="large-card weather-card">
-            <div className="large-card-header">
-              <div>
-                <span className="section-label">
-                  CURRENT WEATHER
-                </span>
-
-                <h3>
-                  {selectedCity?.name ||
-                    "Select a city"}
-                </h3>
-              </div>
-
-              <div className="card-actions">
-                <button
-                  className={`favorite-btn ${
-                    isSelectedFavorite
-                      ? "favorite-active"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    toggleFavorite(selectedCity)
-                  }
-                  disabled={!selectedCity}
-                  title={
-                    isSelectedFavorite
-                      ? "Remove from favorites"
-                      : "Add to favorites"
-                  }
-                >
-                  <Heart
-                    size={17}
-                    fill={
-                      isSelectedFavorite
-                        ? "currentColor"
-                        : "none"
-                    }
-                  />
-                </button>
-
-                <button
-                  className="refresh-btn"
-                  onClick={refreshWeather}
-                  disabled={
-                    loadingWeather ||
-                    !selectedCity
-                  }
-                  title="Refresh weather"
-                >
-                  <RefreshCw
-                    size={17}
-                    className={
-                      loadingWeather
-                        ? "spin"
-                        : ""
-                    }
-                  />
-                </button>
-              </div>
-            </div>
-
-            {loadingWeather ? (
-              <div className="card-loading">
-                Loading weather...
-              </div>
-            ) : weather ? (
-              <div className="weather-main">
-                <div className="temperature">
-                  {currentTemperature !== null
-                    ? `${Math.round(
-                        currentTemperature
-                      )}°`
-                    : "--"}
+                  <button
+                    className="refresh-btn"
+                    onClick={refreshWeather}
+                    disabled={loadingWeather}
+                    title="Refresh weather"
+                  >
+                    <RefreshCw
+                      size={17}
+                      className={
+                        loadingWeather ? "spin" : ""
+                      }
+                    />
+                  </button>
                 </div>
+              </div>
 
-                <div className="weather-condition">
-                  <CloudSun size={32} />
+              {loadingWeather ? (
+                <div className="card-loading">
+                  Loading weather...
+                </div>
+              ) : weather ? (
+                <div className="weather-main">
+                  <div className="temperature">
+                    {currentTemperature !== null
+                      ? `${Math.round(currentTemperature)}°`
+                      : "--"}
+                  </div>
+
+                  <div className="weather-condition">
+                    <CloudSun size={32} />
+
+                    <div>
+                      <strong>
+                        {currentCondition || "Unknown"}
+                      </strong>
+
+                      <span>
+                        Feels like{" "}
+                        {weather.feelsLike !== undefined
+                          ? `${Math.round(
+                              weather.feelsLike
+                            )}°C`
+                          : "--"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="card-loading">
+                  Weather data unavailable
+                </div>
+              )}
+
+              <div className="weather-details">
+                <div className="weather-detail">
+                  <Wind size={18} />
 
                   <div>
-                    <strong>
-                      {currentCondition ||
-                        "Unknown"}
-                    </strong>
+                    <span>Wind</span>
 
-                    <span>
-                      Feels like{" "}
-                      {weather.feelsLike !==
-                      undefined
-                        ? `${Math.round(
-                            weather.feelsLike
-                          )}°C`
+                    <strong>
+                      {currentWind !== null
+                        ? `${Math.round(currentWind)} km/h`
                         : "--"}
-                    </span>
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="weather-detail">
+                  <CloudSun size={18} />
+
+                  <div>
+                    <span>Humidity</span>
+
+                    <strong>
+                      {weather?.humidity !== undefined
+                        ? `${weather.humidity}%`
+                        : "--"}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="weather-detail">
+                  <span className="detail-symbol">
+                    P
+                  </span>
+
+                  <div>
+                    <span>Pressure</span>
+
+                    <strong>
+                      {weather?.pressure !== undefined
+                        ? `${weather.pressure} hPa`
+                        : "--"}
+                    </strong>
                   </div>
                 </div>
               </div>
-            ) : (
-              <div className="card-loading">
-                Weather data unavailable
-              </div>
-            )}
-
-            <div className="weather-details">
-              <div className="weather-detail">
-                <Wind size={18} />
-
-                <div>
-                  <span>Wind</span>
-
-                  <strong>
-                    {currentWind !== null
-                      ? `${Math.round(
-                          currentWind
-                        )} km/h`
-                      : "--"}
-                  </strong>
-                </div>
-              </div>
-
-              <div className="weather-detail">
-                <CloudSun size={18} />
-
-                <div>
-                  <span>Humidity</span>
-
-                  <strong>
-                    {weather?.humidity !==
-                    undefined
-                      ? `${weather.humidity}%`
-                      : "--"}
-                  </strong>
-                </div>
-              </div>
-
-              <div className="weather-detail">
-                <span className="detail-symbol">
-                  P
-                </span>
-
-                <div>
-                  <span>Pressure</span>
-
-                  <strong>
-                    {weather?.pressure !==
-                    undefined
-                      ? `${weather.pressure} hPa`
-                      : "--"}
-                  </strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* AQI CARD */}
-
-          <div className="large-card aqi-card">
-            <div className="large-card-header">
-              <div>
-                <span className="section-label">
-                  AIR QUALITY
-                </span>
-
-                <h3>US AQI</h3>
-              </div>
-
-              <div className="aqi-status">
-                {getAQIStatus(currentAQI)}
-              </div>
             </div>
 
-            {loadingWeather ? (
-              <div className="card-loading">
-                Loading AQI...
-              </div>
-            ) : (
-              <>
-                <div className="aqi-value">
-                  {currentAQI !== null
-                    ? Math.round(currentAQI)
-                    : "--"}
-                </div>
+            {/* AQI CARD */}
 
-                <p className="aqi-description">
-                  {getAQIDescription(currentAQI)}
-                </p>
-
-                <div className="aqi-bar">
-                  <div
-                    className="aqi-bar-fill"
-                    style={{
-                      width: `${Math.min(
-                        currentAQI || 0,
-                        100
-                      )}%`,
-                    }}
-                  />
-                </div>
-
-                <div className="aqi-meta">
-                  <span>
-                    PM2.5
+            <div className="large-card aqi-card">
+              <div className="large-card-header">
+                <div>
+                  <span className="section-label">
+                    AIR QUALITY
                   </span>
 
-                  <strong>
-                    {currentPM25 !== null
-                      ? `${currentPM25.toFixed(
-                          1
-                        )} µg/m³`
-                      : "--"}
-                  </strong>
+                  <h3>US AQI</h3>
                 </div>
-              </>
-            )}
-          </div>
 
-          {/* POPULATION CARD */}
+                <div className="aqi-status">
+                  {getAQIStatus(currentAQI)}
+                </div>
+              </div>
 
-          <div className="small-card">
-            <div className="small-card-icon">
-              <Users size={20} />
+              {loadingWeather ? (
+                <div className="card-loading">
+                  Loading AQI...
+                </div>
+              ) : (
+                <>
+                  <div className="aqi-value">
+                    {currentAQI !== null
+                      ? Math.round(currentAQI)
+                      : "--"}
+                  </div>
+
+                  <p className="aqi-description">
+                    {getAQIDescription(currentAQI)}
+                  </p>
+
+                  <div className="aqi-bar">
+                    <div
+                      className="aqi-bar-fill"
+                      style={{
+                        width: `${Math.min(
+                          currentAQI || 0,
+                          100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+
+                  <div className="aqi-meta">
+                    <span>PM2.5</span>
+
+                    <strong>
+                      {currentPM25 !== null
+                        ? `${currentPM25.toFixed(1)} µg/m³`
+                        : "--"}
+                    </strong>
+                  </div>
+                </>
+              )}
             </div>
 
-            <span>POPULATION</span>
+            {/* POPULATION CARD */}
 
-            <h3>
-              {selectedCity?.population
-                ? Number(
-                    selectedCity.population
-                  ).toLocaleString()
-                : "N/A"}
-            </h3>
+            <div className="small-card">
+              <div className="small-card-icon">
+                <Users size={20} />
+              </div>
 
-            <p>
-              {selectedCity?.state ||
-                "City population"}
-            </p>
-          </div>
+              <span>POPULATION</span>
 
-          {/* ALERT CARD */}
+              <h3>
+                {selectedCity.population
+                  ? Number(
+                      selectedCity.population
+                    ).toLocaleString()
+                  : "N/A"}
+              </h3>
 
-          <div className="small-card">
-            <div className="small-card-icon">
-              <Bell size={20} />
+              <p>
+                {selectedCity.state || "City population"}
+              </p>
             </div>
 
-            <span>CITY ALERTS</span>
+            {/* ALERT CARD */}
 
-            <h3>{alertCount}</h3>
+            <div className="small-card">
+              <div className="small-card-icon">
+                <Bell size={20} />
+              </div>
 
-            <p>
-              Status:{" "}
-              <strong>
-                {alertStatus}
-              </strong>
-            </p>
-          </div>
-        </section>
+              <span>CITY ALERTS</span>
 
-        {/* ================= CITY LOCATION ================= */}
+              <h3>{alertCount}</h3>
+
+              <p>
+                Status:{" "}
+                <strong>{alertStatus}</strong>
+              </p>
+            </div>
+          </section>
+        ) : (
+          <section className="large-card">
+            <div className="card-loading">
+              Select a city to view dashboard data.
+            </div>
+          </section>
+        )}
+
+        {/* CITY LOCATION */}
 
         <section className="large-card map-card">
           <div className="large-card-header">
@@ -755,8 +747,7 @@ function App() {
               </span>
 
               <h3>
-                {selectedCity?.name ||
-                  "City Map"}
+                {selectedCity?.name || "City Map"}
               </h3>
             </div>
 
@@ -767,8 +758,7 @@ function App() {
             <MapPin size={42} />
 
             <h4>
-              {selectedCity?.name ||
-                "Select a city"}
+              {selectedCity?.name || "Select a city"}
             </h4>
 
             <p>
@@ -778,7 +768,7 @@ function App() {
           </div>
         </section>
 
-        {/* ================= AQI SUMMARY ================= */}
+        {/* AQI SUMMARY */}
 
         <section className="large-card">
           <div className="large-card-header">
@@ -787,9 +777,7 @@ function App() {
                 AIR QUALITY SUMMARY
               </span>
 
-              <h3>
-                How is the air today?
-              </h3>
+              <h3>How is the air today?</h3>
             </div>
           </div>
 
@@ -805,9 +793,7 @@ function App() {
             </div>
 
             <div className="aqi-summary-info">
-              <h4>
-                {getAQIStatus(currentAQI)}
-              </h4>
+              <h4>{getAQIStatus(currentAQI)}</h4>
 
               <p>
                 {getAQIDescription(currentAQI)}
@@ -823,7 +809,7 @@ function App() {
           </div>
         </section>
 
-        {/* ================= 5 DAY FORECAST ================= */}
+        {/* 5 DAY FORECAST */}
 
         <section className="large-card forecast-card">
           <div className="large-card-header">
@@ -849,9 +835,7 @@ function App() {
                 .map((day, index) => (
                   <div
                     className="forecast-item"
-                    key={
-                      day.date || index
-                    }
+                    key={day.date || index}
                   >
                     <span className="forecast-day">
                       {getForecastDay(day.date)}
@@ -865,8 +849,7 @@ function App() {
                           "@2x.png"
                         }
                         alt={
-                          day.description ||
-                          "Weather"
+                          day.description || "Weather"
                         }
                       />
                     ) : (
@@ -874,16 +857,12 @@ function App() {
                     )}
 
                     <strong>
-                      {day.temperature !==
-                      undefined
+                      {day.temperature !== undefined
                         ? `${Math.round(
                             day.temperature
                           )}°C`
-                        : day.temp !==
-                          undefined
-                        ? `${Math.round(
-                            day.temp
-                          )}°C`
+                        : day.temp !== undefined
+                        ? `${Math.round(day.temp)}°C`
                         : "--"}
                     </strong>
 
@@ -902,7 +881,7 @@ function App() {
           )}
         </section>
 
-        {/* ================= SMART CITY ALERTS ================= */}
+        {/* SMART CITY ALERTS */}
 
         <section className="large-card alerts-card">
           <div className="large-card-header">
@@ -930,13 +909,9 @@ function App() {
                     key={index}
                   >
                     <div className="alert-icon">
-                      {alert.type ===
-                      "danger" ? (
-                        <AlertTriangle
-                          size={20}
-                        />
-                      ) : alert.type ===
-                        "warning" ? (
+                      {alert.type === "danger" ? (
+                        <AlertTriangle size={20} />
+                      ) : alert.type === "warning" ? (
                         <Bell size={20} />
                       ) : (
                         <span>✓</span>
@@ -944,13 +919,9 @@ function App() {
                     </div>
 
                     <div className="alert-content">
-                      <h4>
-                        {alert.title}
-                      </h4>
+                      <h4>{alert.title}</h4>
 
-                      <p>
-                        {alert.message}
-                      </p>
+                      <p>{alert.message}</p>
                     </div>
                   </div>
                 )
@@ -963,21 +934,18 @@ function App() {
               </div>
 
               <div className="alert-content">
-                <h4>
-                  No Active Alerts
-                </h4>
+                <h4>No Active Alerts</h4>
 
                 <p>
-                  Weather and air quality
-                  conditions are currently
-                  within normal levels.
+                  Weather and air quality conditions
+                  are currently within normal levels.
                 </p>
               </div>
             </div>
           )}
         </section>
 
-        {/* ================= LAST UPDATED ================= */}
+        {/* LAST UPDATED */}
 
         <div className="last-updated">
           <span>
@@ -1010,6 +978,7 @@ function App() {
   const renderExplore = () => {
     return (
       <main className="main-content">
+
         <section className="page-header">
           <span className="section-label">
             CITY DIRECTORY
@@ -1030,15 +999,11 @@ function App() {
             type="text"
             placeholder="Search cities..."
             value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
+            onChange={(e) => setSearch(e.target.value)}
           />
 
           {search && (
-            <button
-              onClick={() => setSearch("")}
-            >
+            <button onClick={() => setSearch("")}>
               <X size={18} />
             </button>
           )}
@@ -1076,6 +1041,7 @@ function App() {
                       onClick={() =>
                         toggleFavorite(city)
                       }
+                      title="Remove from favorites"
                     >
                       <Heart
                         size={17}
@@ -1086,21 +1052,14 @@ function App() {
 
                   <h3>{city.name}</h3>
 
-                  <p>
-                    {city.state ||
-                      "India"}
-                  </p>
+                  <p>{city.state || "India"}</p>
 
                   <button
                     className="city-card-button"
-                    onClick={() =>
-                      selectCity(city)
-                    }
+                    onClick={() => selectCity(city)}
                   >
                     View Dashboard
-                    <ArrowUpRight
-                      size={16}
-                    />
+                    <ArrowUpRight size={16} />
                   </button>
                 </div>
               ))}
@@ -1118,8 +1077,7 @@ function App() {
               </span>
 
               <h2>
-                {filteredCities.length}{" "}
-                Cities Available
+                {filteredCities.length} Cities Available
               </h2>
             </div>
           </div>
@@ -1131,12 +1089,10 @@ function App() {
           ) : filteredCities.length > 0 ? (
             <div className="city-grid">
               {filteredCities.map((city) => {
-                const isFavorite =
-                  favorites.some(
-                    (favorite) =>
-                      favorite._id ===
-                      city._id
-                  );
+                const isFavorite = favorites.some(
+                  (favorite) =>
+                    favorite._id === city._id
+                );
 
                 return (
                   <div
@@ -1155,9 +1111,12 @@ function App() {
                             : ""
                         }`}
                         onClick={() =>
-                          toggleFavorite(
-                            city
-                          )
+                          toggleFavorite(city)
+                        }
+                        title={
+                          isFavorite
+                            ? "Remove from favorites"
+                            : "Add to favorites"
                         }
                       >
                         <Heart
@@ -1193,14 +1152,10 @@ function App() {
 
                     <button
                       className="city-card-button"
-                      onClick={() =>
-                        selectCity(city)
-                      }
+                      onClick={() => selectCity(city)}
                     >
                       View Dashboard
-                      <ArrowUpRight
-                        size={16}
-                      />
+                      <ArrowUpRight size={16} />
                     </button>
                   </div>
                 );
@@ -1210,13 +1165,10 @@ function App() {
             <div className="no-results-box">
               <Search size={28} />
 
-              <h3>
-                No cities found
-              </h3>
+              <h3>No cities found</h3>
 
               <p>
-                Try searching for another
-                city.
+                Try searching for another city.
               </p>
             </div>
           )}
@@ -1230,14 +1182,13 @@ function App() {
   const renderAbout = () => {
     return (
       <main className="main-content">
+
         <section className="page-header about-header">
           <span className="section-label">
             ABOUT CITYPULSE
           </span>
 
-          <h1>
-            Understand Your City.
-          </h1>
+          <h1>Understand Your City.</h1>
 
           <p>
             CityPulse is a smart city monitoring
@@ -1255,15 +1206,12 @@ function App() {
               <Wind size={24} />
             </div>
 
-            <h3>
-              Real-Time Weather
-            </h3>
+            <h3>Real-Time Weather</h3>
 
             <p>
-              Get current temperature,
-              humidity, wind speed and other
-              weather information for your
-              selected city.
+              Get current temperature, humidity,
+              wind speed and other weather
+              information for your selected city.
             </p>
           </div>
 
@@ -1272,9 +1220,7 @@ function App() {
               <CloudSun size={24} />
             </div>
 
-            <h3>
-              Air Quality
-            </h3>
+            <h3>Air Quality</h3>
 
             <p>
               Monitor US AQI and PM2.5 levels
@@ -1288,9 +1234,7 @@ function App() {
               <Bell size={24} />
             </div>
 
-            <h3>
-              Smart Alerts
-            </h3>
+            <h3>Smart Alerts</h3>
 
             <p>
               Receive simple alerts when
@@ -1304,9 +1248,7 @@ function App() {
               <Heart size={24} />
             </div>
 
-            <h3>
-              Favorite Cities
-            </h3>
+            <h3>Favorite Cities</h3>
 
             <p>
               Save the cities you check most
@@ -1326,71 +1268,40 @@ function App() {
               </span>
 
               <h3>
-                Built With Modern Web
-                Technologies
+                Built With Modern Web Technologies
               </h3>
             </div>
           </div>
 
           <div className="tech-list">
             <div className="tech-item">
-              <strong>
-                React + Vite
-              </strong>
-
-              <span>
-                Frontend interface
-              </span>
+              <strong>React + Vite</strong>
+              <span>Frontend interface</span>
             </div>
 
             <div className="tech-item">
-              <strong>
-                Node.js + Express
-              </strong>
-
-              <span>
-                Backend API
-              </span>
+              <strong>Node.js + Express</strong>
+              <span>Backend API</span>
             </div>
 
             <div className="tech-item">
-              <strong>
-                MongoDB
-              </strong>
-
-              <span>
-                City data storage
-              </span>
+              <strong>MongoDB</strong>
+              <span>City data storage</span>
             </div>
 
             <div className="tech-item">
-              <strong>
-                OpenWeather
-              </strong>
-
-              <span>
-                Weather and forecast data
-              </span>
+              <strong>OpenWeather</strong>
+              <span>Weather and forecast data</span>
             </div>
 
             <div className="tech-item">
-              <strong>
-                Open-Meteo
-              </strong>
-
-              <span>
-                Air quality data
-              </span>
+              <strong>Open-Meteo</strong>
+              <span>Air quality data</span>
             </div>
 
             <div className="tech-item">
-              <strong>
-                Lucide React
-              </strong>
-
-              <span>
-                Interface icons
-              </span>
+              <strong>Lucide React</strong>
+              <span>Interface icons</span>
             </div>
           </div>
         </section>
@@ -1446,14 +1357,14 @@ function App() {
 
   return (
     <div className="app">
-      {/* ================= NAVBAR ================= */}
+
+      {/* NAVBAR */}
 
       <header className="navbar">
+
         <div
           className="logo"
-          onClick={() =>
-            setCurrentPage("dashboard")
-          }
+          onClick={() => navigateTo("dashboard")}
         >
           <div className="logo-icon">
             <Wind size={19} />
@@ -1464,6 +1375,8 @@ function App() {
           </span>
         </div>
 
+        {/* DESKTOP NAVIGATION */}
+
         <nav className="nav-links">
           <button
             className={
@@ -1471,9 +1384,7 @@ function App() {
                 ? "nav-active"
                 : ""
             }
-            onClick={() =>
-              setCurrentPage("dashboard")
-            }
+            onClick={() => navigateTo("dashboard")}
           >
             Dashboard
           </button>
@@ -1484,9 +1395,7 @@ function App() {
                 ? "nav-active"
                 : ""
             }
-            onClick={() =>
-              setCurrentPage("explore")
-            }
+            onClick={() => navigateTo("explore")}
           >
             Explore Cities
           </button>
@@ -1497,20 +1406,19 @@ function App() {
                 ? "nav-active"
                 : ""
             }
-            onClick={() =>
-              setCurrentPage("about")
-            }
+            onClick={() => navigateTo("about")}
           >
             About
           </button>
         </nav>
 
         <div className="navbar-actions">
+
+          {/* FAVORITES */}
+
           <button
             className="nav-icon-button"
-            onClick={() =>
-              setCurrentPage("explore")
-            }
+            onClick={() => navigateTo("explore")}
             title="Favorites"
           >
             <Heart
@@ -1521,35 +1429,90 @@ function App() {
                   : "none"
               }
             />
+
+            {favorites.length > 0 && (
+              <span className="favorite-count">
+                {favorites.length}
+              </span>
+            )}
           </button>
+
+          {/* MOBILE MENU */}
 
           <button
             className="nav-menu-button"
+            onClick={() =>
+              setMobileMenuOpen((prev) => !prev)
+            }
             title="Menu"
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
           >
-            <Menu size={20} />
+            {mobileMenuOpen ? (
+              <X size={20} />
+            ) : (
+              <Menu size={20} />
+            )}
           </button>
         </div>
       </header>
 
-      {/* ================= PAGE ================= */}
+      {/* MOBILE MENU */}
 
-      {currentPage === "dashboard" &&
-        renderDashboard()}
+      {mobileMenuOpen && (
+        <div className="mobile-menu">
 
-      {currentPage === "explore" &&
-        renderExplore()}
+          <button
+            className={
+              currentPage === "dashboard"
+                ? "mobile-nav-active"
+                : ""
+            }
+            onClick={() => navigateTo("dashboard")}
+          >
+            <Wind size={18} />
+            Dashboard
+          </button>
 
-      {currentPage === "about" &&
-        renderAbout()}
+          <button
+            className={
+              currentPage === "explore"
+                ? "mobile-nav-active"
+                : ""
+            }
+            onClick={() => navigateTo("explore")}
+          >
+            <MapPin size={18} />
+            Explore Cities
+          </button>
 
-      {/* ================= FOOTER ================= */}
+          <button
+            className={
+              currentPage === "about"
+                ? "mobile-nav-active"
+                : ""
+            }
+            onClick={() => navigateTo("about")}
+          >
+            <Bell size={18} />
+            About
+          </button>
+        </div>
+      )}
+
+      {/* PAGE */}
+
+      {currentPage === "dashboard" && renderDashboard()}
+
+      {currentPage === "explore" && renderExplore()}
+
+      {currentPage === "about" && renderAbout()}
+
+      {/* FOOTER */}
 
       <footer className="footer">
         <div>
-          <strong>
-            CityPulse
-          </strong>
+          <strong>CityPulse</strong>
 
           <span>
             Smart city monitoring made simple.
