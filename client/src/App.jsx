@@ -40,7 +40,6 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-// WEATHER DESCRIPTION
 // =====================================================
 
 const getWeatherDescription = (code) => {
