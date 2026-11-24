@@ -54,7 +54,6 @@ const getWeatherDescription = (code) => {
   return "Unknown";
 };
 
-// =====================================================
 
 const getForecastDay = (date) => {
   if (!date) return "--";
