@@ -117,9 +117,6 @@ const getAlertStatus = (alerts) => {
   return "Warning";
 };
 
-
-// These are fallback coordinates for common Indian cities.
-
 const cityCoordinates = {
   dhanbad: [23.7957, 86.4304],
   ranchi: [23.3441, 85.3096],
