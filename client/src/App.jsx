@@ -76,7 +76,6 @@ const getForecastDay = (date) => {
   });
 };
 
-// AQI STATUS
 
 const getAQIStatus = (aqi) => {
   if (aqi === null || aqi === undefined) return "Unknown";
