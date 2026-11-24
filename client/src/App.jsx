@@ -118,7 +118,6 @@ const getAlertStatus = (alerts) => {
 };
 
 // CITY COORDINATES
-// =====================================================
 
 // If your MongoDB city has latitude/longitude,
 // those values will be used first.
