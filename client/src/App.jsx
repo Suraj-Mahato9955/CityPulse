@@ -119,7 +119,6 @@ const getAlertStatus = (alerts) => {
 
 // CITY COORDINATES
 
-\//
 // These are fallback coordinates for common Indian cities.
 
 const cityCoordinates = {
