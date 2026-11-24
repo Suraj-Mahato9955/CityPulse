@@ -104,7 +104,6 @@ const getAQIDescription = (aqi) => {
   return "Health emergency conditions";
 };
 
-// =====================================================
 
 const getAlertStatus = (alerts) => {
   if (!alerts || alerts.length === 0) {
