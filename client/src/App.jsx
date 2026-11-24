@@ -26,7 +26,6 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./App.css";
 
-   LEAFLET MARKER FIX
  =====================================================*/
 
 delete L.Icon.Default.prototype._getIconUrl;
