@@ -119,8 +119,7 @@ const getAlertStatus = (alerts) => {
 
 // CITY COORDINATES
 
-// If your MongoDB city has latitude/longitude,
-//
+\//
 // These are fallback coordinates for common Indian cities.
 
 const cityCoordinates = {
