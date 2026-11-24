@@ -16,7 +16,6 @@ app.use(express.json());
 
 app.use("/api/cities", cityRoutes);
 
-// Health Check
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
