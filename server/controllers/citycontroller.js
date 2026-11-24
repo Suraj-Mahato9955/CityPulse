@@ -2,7 +2,6 @@ const City = require("../models/City");
 const getWeather = require("../services/weatherService");
 const City = require("../models/City");
 
-// Add City / Multiple Cities
 const addCity = async (req, res) => {
   try {
     const data = Array.isArray(req.body) ? req.body : [req.body];
