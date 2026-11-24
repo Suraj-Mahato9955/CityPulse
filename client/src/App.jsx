@@ -89,7 +89,6 @@ const getAQIStatus = (aqi) => {
   return "Hazardous";
 };
 
-// =====================================================
 // AQI DESCRIPTION
 
 const getAQIDescription = (aqi) => {
