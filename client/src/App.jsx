@@ -93,7 +93,6 @@ const getAQIStatus = (aqi) => {
 
 // =====================================================
 // AQI DESCRIPTION
-// =====================================================
 
 const getAQIDescription = (aqi) => {
   if (aqi === null || aqi === undefined) {
