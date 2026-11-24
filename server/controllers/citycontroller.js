@@ -60,7 +60,6 @@ const getCityById = async (req, res) => {
     });
   }
 };
-// Get City Weather
 const getCityWeather = async (req, res) => {
   try {
     const city = await City.findById(req.params.id);
