@@ -21,7 +21,6 @@ const addCity = async (req, res) => {
   }
 };
 
-// Get All Cities
 const getCities = async (req, res) => {
   try {
     const cities = await City.find().sort({ name: 1 });
