@@ -38,7 +38,6 @@ const getCities = async (req, res) => {
   }
 };
 
-// Get City By ID
 const getCityById = async (req, res) => {
   try {
     const city = await City.findById(req.params.id);
