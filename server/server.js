@@ -9,7 +9,6 @@ const app = express();
 
 const PORT = process.env.PORT || 5000;
 
-// Connect MongoDB
 connectDB();
 
 // Middleware
