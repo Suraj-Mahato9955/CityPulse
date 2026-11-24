@@ -19,7 +19,6 @@ router.get("/:id", getCityById);
 
 module.exports = router;
 
-// Get Weather
 router.get("/:id/weather", async (req, res) => {
   try {
     const city = await getCityById(req, res);
