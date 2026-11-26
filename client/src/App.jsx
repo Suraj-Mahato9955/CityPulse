@@ -198,7 +198,6 @@ const getCityCoordinates = (city) => {
   return [20.5937, 78.9629];
 };
 
-// MAP COMPONENT
 // =====================================================
 
 const CityMap = ({ city }) => {
