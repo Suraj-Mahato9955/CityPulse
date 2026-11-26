@@ -196,7 +196,6 @@ const getCityCoordinates = (city) => {
     return cityCoordinates[cityName];
   }
 
-  // India center as final fallback
   return [20.5937, 78.9629];
 };
 
