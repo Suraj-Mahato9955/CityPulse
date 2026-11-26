@@ -166,7 +166,6 @@ const getCityCoordinates = (city) => {
     return [20.5937, 78.9629];
   }
 
-  // Different possible database field names
   const latitude =
     city.latitude ??
     city.lat ??
