@@ -160,7 +160,6 @@ const cityCoordinates = {
   thiruvananthapuram: [8.5241, 76.9366],
 };
 
-// GET CITY COORDINATES
 // =====================================================
 
 const getCityCoordinates = (city) => {
